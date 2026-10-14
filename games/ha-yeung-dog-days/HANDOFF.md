@@ -151,3 +151,9 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 
 ### Ideas from the user (not built)
 - Players setting up their own mini-games inside the world (e.g. a gambling booth / game stall they design). Feasible later as a creation kind with a small whitelisted rule set (e.g. a stall with a coin-flip / guess game paying good-dog points); not started.
+
+## #8 · 2026-10-14 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+- Publishing version 16 was blocked by the session's auto-mode safety check ("Create Unsafe Agents"). Likely cause: one player's creation text (a talking character's personality) was fed into other players' Claude requests (prompt-injection path).
+- Fixes: (1) `genReview()`: a second quick-tier `sample.json` call on the creator's account reviews a creation's text (name, zh, label, line, hello, talk) and blocks harmful content or AI-instruction text before it's spawned or saved. (2) Chatting with player-made characters no longer sends their `talk` text; the prompt only gets the label, quoted as a name tag. The client-side review can be bypassed by a tampered client, so (2) is the real guard; review is a filter, not a security boundary.
+- Only a load smoke test was run (no errors).
