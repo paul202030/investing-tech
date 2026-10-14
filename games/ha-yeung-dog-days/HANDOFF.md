@@ -127,3 +127,13 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 
 ### Next
 - Try it with two signed-in people. Possible later additions: shared scoreboard (db), chase each other, bark emotes on a topic.
+
+## #6 · 2026-10-14 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+### What changed (game version 15; capabilities room + db + sample)
+- **Player creations** ("✨ Create" button under the minimap, key N): the player types an idea, and one `sample.json` call on the **player's own Claude account** (`modelTier: 'quick'`, explicit action only, one per 90 s per player) returns an object spec: name, zh, label, line, move (none/bounce/float/spin), effect (none/giant/tiny/zoom/rain/party) and 2–14 primitive parts. `cleanSpec()` whitelists and clamps everything (shapes, #rrggbb colours, sizes ≤1.6 m); text goes into the page only via textContent. Each creation spawns as a carryable item (`ITYPES['gen_'+id]`, not stashable) and is saved to db `creations/{id}` `{lv,x,z,spec,by,t}`. Every view listens to the latest 200 (`onSnapshot`) and spawns up to 70 for its level, so the world grows from what players make. Prompt: `genPrompt()` (friendly, not weird, no brands or real people). New to-do `create` (19 total).
+- No procedural/random generator (the user doesn't want one), and no automatic GitHub sync. The user may ask a session to "sync creations": read db `creations` with ArtifactData and commit them (e.g. `data/creations.json`).
+- Test: `tests/run24_creations.js` (fake `sample` and `db`): N opens the box, a creation spawns and saves, another player's creation appears, invalid specs are ignored, and picking one up triggers its effect (giant dog). Passed, no errors. Not tried yet with real Claude accounts.
+
+### User ideas parked (not started; the user wants to keep spending low)
+- More dog breeds (e.g. a bichon frise as a playable choice), and GTA-style missions given by a Chinese auntie (a mission giver with chained objectives: deliveries, heists, escapes on a timer). Both are feasible on the current engine.

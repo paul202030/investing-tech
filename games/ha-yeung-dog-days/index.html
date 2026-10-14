@@ -145,6 +145,14 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 #fade .fadeBus{font-size:56px;line-height:1;margin-bottom:12px;animation:busBob .5s ease-in-out infinite alternate}
 @keyframes busBob{from{transform:translateY(0)}to{transform:translateY(-6px)}}
 @media (prefers-reduced-motion:reduce){#aCtx,#fade .fadeBus{animation:none}#fade{transition:none}}
+#createBtn{font-family:var(--display);font-weight:800;font-size:14px;border:none;border-radius:18px;padding:7px 14px;background:var(--gold);color:var(--ink);cursor:pointer;pointer-events:auto;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+#createBox{z-index:6}
+#createIdea{font:inherit;font-size:16px;padding:10px;border:2px solid rgba(28,38,38,.2);border-radius:8px;background:#fffdf6;color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;border:1px solid rgba(28,38,38,.25);background:transparent;border-radius:14px;padding:4px 10px;cursor:pointer;color:var(--ink)}
+#createGo{font-family:var(--display);font-weight:800;font-size:17px;border:none;border-radius:10px;padding:11px;background:var(--green);color:#fff;cursor:pointer}
+#createGo:disabled{opacity:.6;cursor:progress}
+#createMsg{min-height:1.2em;margin:0}
 </style>
 
 <div id="game"></div>
@@ -161,6 +169,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
   </section>
   <section id="side">
     <canvas id="map" width="150" height="136" aria-label="Village map"></canvas>
+    <button id="createBtn" type="button">✨ Create</button>
     <details id="todoBox" class="card" open>
       <summary>Today <span id="todoCount">0/8</span></summary>
       <ul id="todoList"></ul>
@@ -183,6 +192,11 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 <div id="lostMsg" class="lost" hidden><div class="startCard"><h1>Graphics paused</h1><p>Your browser reset the 3D graphics, usually because the device ran low on memory. Reload the page to keep playing; the game will start in a lighter mode.</p><button id="reloadBtn" type="button" onclick="location.reload()">Reload</button></div></div>
 <div id="bigMap" class="lost" hidden><div class="mapCard"><div class="mapHead"><b>Where to?</b><button id="mapClose" type="button">Close</button></div>
 <canvas id="bigMapCv" width="1050" height="750" aria-label="Map of Ha Yeung. Tap a place to go there."></canvas><p class="small">Tap anywhere on the map and your dog appears there.</p></div></div>
+<div id="createBox" class="lost" hidden><div class="mapCard"><div class="mapHead"><b>Create something ✨</b><button id="createClose" type="button">Close</button></div>
+<p class="small">Describe one thing to add to this village. Claude builds it using your own Claude account, and it stays here for every player to find.</p>
+<input id="createIdea" maxlength="120" placeholder="e.g. a giant bouncing mango" autocomplete="off">
+<div class="chips"><button type="button" class="chip">a flying siu mai</button><button type="button" class="chip">a tiny red taxi that makes you tiny</button><button type="button" class="chip">a disco egg tart</button><button type="button" class="chip">a lucky golden cat</button></div>
+<button id="createGo" type="button">Make it</button><p id="createMsg" class="small" role="status" aria-live="polite"></p></div></div>
 <div id="arcade" aria-hidden="true"><div class="lines"></div><div class="arcBox"><div class="arcTitle"></div><div class="arcSub"></div></div></div>
 <div id="pops" aria-hidden="true"></div>
 <div id="chaseHud" hidden><span class="chWho">UNCLE</span><span class="chBar"><i></i></span><span class="chDist">0.0M</span></div>
@@ -207,6 +221,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
       <kbd>C</kbd><span>Sit (people nearby pat you), press again to lie down for belly rubs and naps</span>
       <kbd>Drag / wheel</kbd><span>Turn and zoom the camera</span>
       <kbd>X</kbd><span>Board the bus at the stop; hop on or off a golf cart (W to drive, hold Shift for turbo)</span>
+      <kbd>N or ✨ Create</kbd><span>Describe a new thing for the village; Claude builds it and every player can find it</span>
       <kbd>Q or tap the map</kbd><span>Open the big map and jump anywhere</span>
     </div>
     <div class="keys touch">
@@ -284,6 +299,7 @@ function loadWorld(id){const w=JSON.parse(document.getElementById(LEVELS[id]).te
 function fade(on,msg){if(msg!==undefined)$('#fadeMsg').textContent=msg;$('#fade').classList.toggle('on',!!on)}
 let LV=null;
 // friends playing at the same time (room presence); the game works the same without it
+let DBCAP=null,SAMP=null;try{if(window.claude&&typeof window.claude.use==='function'){window.claude.use('db').then(r=>{DBCAP=r}).catch(()=>{});window.claude.use('sample').then(r=>{SAMP=r}).catch(()=>{})}}catch(e){}
 let ROOM=null;try{if(window.claude&&typeof window.claude.use==='function')window.claude.use('room').then(r=>{ROOM=r}).catch(()=>{})}catch(e){}
 function buildLevel(id,data,arrive){const AC=new AbortController(),P=EventTarget.prototype,orig=P.addEventListener;
   P.addEventListener=function(t,f,o){if(typeof o==='boolean')o={capture:o};return orig.call(this,t,f,Object.assign({signal:AC.signal},o||{}))};
@@ -890,14 +906,14 @@ const _q=new THREE.Quaternion();let itemTopT=10;
 function kidThrow(obj){const kp=kid.g.position;let tx=kp.x,tz=kp.z;for(let i=0;i<30;i++){const a=Math.random()*6.28,r=6+Math.random()*12;tx=kp.x+Math.cos(a)*r;tz=kp.z+Math.sin(a)*r;if(gridH(tx,tz)>-1.5&&!bldAt(tx,tz))break}
   const ty=Math.max(0,groundAt(tx,tz))+0.11,T=1.4;obj.x=kp.x+0.2;obj.y=kp.y+1.2;obj.z=kp.z+0.2;obj.vx=(tx-obj.x)/T;obj.vz=(tz-obj.z)/T;obj.vy=(ty-obj.y+0.5*9.8*T*T)/T;kid.arms[0].rotation.x=-2.5}
 function dropItem(){if(!dog.item||dog.item.loot)return;const it=dog.item;dog.item=null;it.state='ground';it.x=dog.x+Math.sin(dog.heading)*0.55;it.z=dog.z+Math.cos(dog.heading)*0.55;it.y=groundAt(it.x,it.z)+it.T.r;
-  it.yaw=dog.heading+Math.PI/2;it.g.position.set(it.x,it.y,it.z);it.g.rotation.set(0,it.yaw,0);dog.dropCool=1.5}
+  it.yaw=dog.heading+Math.PI/2;if(it.T.gen)it.g.scale.setScalar(1);it.g.position.set(it.x,it.y,it.z);it.g.rotation.set(0,it.yaw,0);dog.dropCool=1.5}
 function stashPlace(it,n){const a=n*0.95,r=0.95+Math.min(0.6,n*0.03);it.state='stash';it.x=BED.x+Math.cos(a)*r;it.z=BED.z+Math.sin(a)*r;it.g.position.set(it.x,groundAt(it.x,it.z)+it.T.r,it.z);it.g.rotation.set(0,Math.random()*6.28,0)}
 function updateItems(dt){
   if(dog.dropCool>0)dog.dropCool-=dt;
   for(const it of items){
     if(it.state==='ground'){const gh=gridH(it.x,it.z);if(gh<0){it.y=it.type==='stone'?gh+it.T.r:0.05+Math.sin(S.t*2+it.x)*0.04;it.g.position.y=it.y}
       if(S.started&&!dog.cart&&!dog.item&&!dog.holding&&!dog.action&&!dog.napping&&!(dog.dropCool>0)&&Math.hypot(it.x-dog.x,it.z-dog.z)<0.8&&Math.abs(it.y-dog.y)<1.3){
-        it.state='dog';dog.item=it;sfx.ding();
+        it.state='dog';dog.item=it;sfx.ding();if(it.T.gen){it.g.scale.setScalar(it.T.carryS);genPickup(it)}
         if(!S.carryHint){S.carryHint=true;toast('You picked up '+it.T.label+'! Carry it to your bed for your stash, or to Ming on the beach. Bark or press G to drop it.')}else toast('Got '+it.T.label+'.')}}
     else if(it.state==='grab'||it.state==='taken'){it.k=Math.min(1,(it.k||0)+dt/0.4);let to;if(it.state==='grab'){D.head.updateMatrixWorld();to=D.head.localToWorld(v3.set(0,-0.08,0.27)).clone()}else{it.holder.arms[1].updateMatrixWorld();to=it.holder.arms[1].localToWorld(v3.set(0,-0.7,0.08)).clone()}
       it.x=lerp(it.fx,to.x,it.k);it.z=lerp(it.fz,to.z,it.k);it.y=lerp(it.fy,to.y,it.k)+Math.sin(it.k*Math.PI)*0.7;it.g.position.set(it.x,it.y,it.z);it.g.rotation.y+=dt*10;
@@ -909,7 +925,7 @@ function updateItems(dt){
     else if(it.state==='fly'){it.vy-=9.8*dt;it.x+=it.vx*dt;it.y+=it.vy*dt;it.z+=it.vz*dt;const gh=groundAt(it.x,it.z);const surf=gh<0&&it.type!=='stone'?0.05:gh+it.T.r;
       it.g.rotation.x+=dt*9;if(it.vy<0&&it.y<=surf){it.y=surf;it.state='ground';it.g.rotation.set(0,it.yaw,0);if(gh<0)sfx.splash()}it.g.position.set(it.x,it.y,it.z)}}
   if(dog.item&&!dog.item.loot&&!dog.item.quest){const it=dog.item;
-    if(Math.hypot(BED.x-dog.x,BED.z-dog.z)<1.8){dog.item=null;S.stash.push(it.type);S.stashN=S.stash.length;S.stashDay=(S.stashDay||0)+1;stashPlace(it,S.stashN);
+    if(!it.T.gen&&Math.hypot(BED.x-dog.x,BED.z-dog.z)<1.8){dog.item=null;S.stash.push(it.type);S.stashN=S.stash.length;S.stashDay=(S.stashDay||0)+1;stashPlace(it,S.stashN);
       S.points+=15;S.happy=Math.min(100,S.happy+6);sfx.ding();toast('Added '+it.T.label+' to your stash by the bed ('+S.stashN+').');if(S.stashDay>=3)complete('stash');renderTodos()}
     else if(kid.g.visible&&Math.hypot(kid.g.position.x-dog.x,kid.g.position.z-dog.z)<2.3){dog.item=null;it.state='fly';kidThrow(it);S.fetchN++;S.points+=20;S.happy=Math.min(100,S.happy+10);
       say(kid,it.type==='stone'?'A rock? Okay… fetch!':it.type==='branch'?'Whoa, that\'s huge! Fetch!':'Ooh, '+it.T.label.replace(/^an? /,'')+'! Fetch!',2);if(S.fetchN>=3)complete('fetch');renderTodos()}}
@@ -980,6 +996,60 @@ function mpUpd(dt){if(!ROOM)return;
     Dd.tail.rotation.x=lerp(-1.15,-1.55,Math.max(sit,lie));Dd.tail.rotation.z=Math.sin(S.t*12)*0.5;
     o.tagT-=dt;if(o.tagT<=0){o.tagT=0.8;if(q.b!==o.b){o.b=q.b;say(o,'Woof! Woof!',1.2);if(Math.hypot(o.x-dog.x,o.z-dog.z)<30)sfx.bark()}else say(o,'🐾 '+String(q.n||'Friend').slice(0,14),1.0)}}
   for(const [id,o] of MP.dogs)if(!seen.has(id)){scene.remove(o.D.root);if(o.cart)scene.remove(o.cart.g);MP.dogs.delete(id)}}
+// ================= Player creations: ideas built by Claude on the player's own account, shared through db =================
+const GEN={ids:new Set(),items:[],unsub:null,busy:false,lastAt:0};
+const GSH=['box','sphere','cyl','cone'],GMOVE=['none','bounce','float','spin'],GFX=['none','giant','tiny','zoom','rain','party'];
+function gStr(v,n){return typeof v==='string'?v.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,n):''}
+function cleanSpec(s){if(!s||typeof s!=='object')return null;const num=(v,a,b,d)=>{v=+v;return isFinite(v)?clamp(v,a,b):d};
+  const parts=(Array.isArray(s.parts)?s.parts:[]).slice(0,14).map(p=>p&&GSH.includes(p.s)&&/^#[0-9a-fA-F]{6}$/.test(p.c)?{s:p.s,c:p.c,x:num(p.x,-0.9,0.9,0),y:num(p.y,0,1.7,0.2),z:num(p.z,-0.9,0.9,0),
+    sx:num(p.sx,0.02,1.6,0.2),sy:num(p.sy,0.02,1.6,0.2),sz:num(p.sz,0.02,1.6,0.2),rx:num(p.rx,-180,180,0),ry:num(p.ry,-180,180,0),rz:num(p.rz,-180,180,0)}:null).filter(Boolean);
+  if(!parts.length)return null;const name=gStr(s.name,28)||'Mystery thing';
+  return {name,zh:gStr(s.zh,8),label:gStr(s.label,40)||('a '+name),line:gStr(s.line,90),move:GMOVE.includes(s.move)?s.move:'none',effect:GFX.includes(s.effect)?s.effect:'none',parts}}
+function genMake(spec,g){for(const p of spec.parts){const ma=mat(new THREE.Color(p.c).getHex());let m;
+    if(p.s==='box')m=new THREE.Mesh(new THREE.BoxGeometry(p.sx,p.sy,p.sz),ma);else if(p.s==='sphere'){m=new THREE.Mesh(SPH,ma);m.scale.set(p.sx/2,p.sy/2,p.sz/2)}
+    else if(p.s==='cyl')m=new THREE.Mesh(new THREE.CylinderGeometry(p.sx/2,p.sx/2,p.sy,12),ma);else m=new THREE.Mesh(new THREE.ConeGeometry(p.sx/2,p.sy,12),ma);
+    m.position.set(p.x,p.y,p.z);m.rotation.set(p.rx*Math.PI/180,p.ry*Math.PI/180,p.rz*Math.PI/180);m.castShadow=true;g.add(m)}}
+function genType(id,spec){const key='gen_'+id;if(!ITYPES[key]){let md=0.2,top=0.2;for(const p of spec.parts){md=Math.max(md,Math.abs(p.x)+p.sx/2,Math.abs(p.z)+p.sz/2);top=Math.max(top,p.y+p.sy/2)}
+    ITYPES[key]={label:spec.label,r:0.02,gen:spec,carryS:Math.min(1,0.5/Math.max(md,top/2)),top,make(g){genMake(spec,g)}}}return key}
+function genSpawn(id,d,local){if(GEN.ids.has(id)||GEN.items.length>=70)return null;const spec=cleanSpec(d&&d.spec);if(!spec||d.lv!==WD.level||!isFinite(d.x)||!isFinite(d.z))return null;GEN.ids.add(id);
+  const x=clamp(+d.x,X0+20,X1-20),z=clamp(+d.z,Z0+20,Z1-20);const it=addItem(genType(id,spec),x,z);it.by=gStr(d.by,14)||'someone';it.ph=Math.random()*6;it.tag={g:it.g,headY:it.T.top+0.35};it.tagT=Math.random();GEN.items.push(it);return it}
+function genListen(){if(GEN.unsub||!DBCAP)return;GEN.unsub=()=>{};try{GEN.unsub=DBCAP.collection('creations').orderBy('t','desc').limit(200).onSnapshot(snap=>{for(const ch of snap.docChanges())if(ch.type==='added'){const d=ch.doc.data();if(d)genSpawn(ch.doc.id,d)}},()=>{})||(()=>{})}catch(e){}}
+function genPickup(it){const s=it.T.gen;S.points+=10;toast('✨ '+s.name+(s.zh?' '+s.zh:'')+', made by '+it.by+'.');if(s.line)say(DOGTALK,s.line,3.2);
+  if(it.fxAt&&S.t-it.fxAt<60)return;it.fxAt=S.t;
+  if(s.effect==='giant'||s.effect==='tiny'){dog.scaleTo=s.effect==='giant'?2.2:0.45;dog.scaleT=20;sfx.tada()}
+  else if(s.effect==='zoom'){dog.zoomT=15;arcade('はやい!','ZOOM!','run')}
+  else if(s.effect==='party'){arcade('パーティー!','PARTY!','clear');sfx.tada();hearts(20);for(const p of people())if(personNear(p,25))p.patT=3}
+  else if(s.effect==='rain'){let n=0;for(const o of items)if(o.rainCopy)n++;for(let i=0;i<10&&n<40;i++,n++){const a=Math.random()*6.28,r=2+Math.random()*7;const x=dog.x+Math.cos(a)*r,z=dog.z+Math.sin(a)*r;if(bldAt(x,z))continue;
+      const o=addItem(it.type,x,z);o.rainCopy=true;o.by=it.by;o.state='fly';o.vx=0;o.vz=0;o.vy=0;o.y+=10+Math.random()*6;o.g.position.y=o.y}toast('It\'s raining '+s.name.toLowerCase()+'!')}}
+function genUpd(dt){genListen();
+  if(dog.scaleT>0){dog.scaleT-=dt;if(dog.scaleT<=0)dog.scaleTo=1}const sc=D.root.scale.x,tg=dog.scaleTo||1;if(Math.abs(sc-tg)>0.001)D.root.scale.setScalar(lerp(sc,tg,Math.min(1,dt*3)));if(dog.zoomT>0)dog.zoomT-=dt;
+  for(const it of GEN.items){if(it.state==='ground'&&it.T.gen){const m=it.T.gen.move;it.ph+=dt;
+      if(m==='bounce')it.g.position.y=it.y+Math.abs(Math.sin(it.ph*3))*0.4;else if(m==='float')it.g.position.y=it.y+0.5+Math.sin(it.ph*1.5)*0.15;if(m==='spin')it.g.rotation.y+=dt*1.6;
+      it.tagT-=dt;if(it.tagT<=0){it.tagT=1;if(Math.hypot(it.x-dog.x,it.z-dog.z)<16)say(it.tag,'✨ '+it.T.gen.name,1.1)}}}}
+function genPrompt(idea){return 'You design ONE small object for a cute, low-poly 3D browser game where you play a golden retriever in '+WD.name+', Hong Kong. Everyone who plays will see it, so keep it friendly, a little funny and not too weird: no violence, nothing gross or scary, no real brands or real people.\n'+
+  'Player\'s idea: """'+idea.slice(0,120).replace(/"/g,"'")+'"""\n'+
+  'Reply with ONLY a JSON object:\n{"name": "short name, max 28 chars", "zh": "optional Chinese name, max 8 chars", "label": "how the game mentions it, e.g. a giant bouncing mango (max 40 chars)", '+
+  '"line": "one cheerful sentence the dog thinks when picking it up, max 80 chars", "move": "none" | "bounce" | "float" | "spin", '+
+  '"effect": "none" | "giant" | "tiny" | "zoom" | "rain" | "party", "parts": [2 to 14 simple shapes that together look like the idea]}\n'+
+  'effect = what happens to the dog that picks it up: giant or tiny dog for 20 s, zoom = super speed for 15 s, rain = copies fall from the sky, party = everyone nearby cheers. Choose what fits the idea; "none" is fine.\n'+
+  'Each part: {"s": "box"|"sphere"|"cyl"|"cone", "c": "#rrggbb", "x","y","z": centre in metres (y is up; the object stands on y=0), "sx","sy","sz": size in metres (sphere, cyl and cone: sx = diameter, sy = height), "rx","ry","rz": optional rotation in degrees}. '+
+  'The whole object must fit inside 1.6 x 1.6 x 1.6 m. Use bright, friendly colours.'}
+const cBox=$('#createBox'),cMsg=$('#createMsg'),cIdea=$('#createIdea'),cGo=$('#createGo');
+function openCreate(){if(!S.started||S.leaving)return;cBox.hidden=false;cMsg.textContent=SAMP?'':'Creating needs Claude: open the game signed in to claude.ai. You can still find what other players made.';setTimeout(()=>cIdea.focus(),50)}
+function closeCreate(){cBox.hidden=true;cIdea.blur()}
+async function genCreate(){const idea=gStr(cIdea.value,120);if(!idea){cMsg.textContent='Type an idea first.';return}if(!SAMP){cMsg.textContent='Creating needs Claude: open the game signed in to claude.ai.';return}
+  if(GEN.busy)return;const wait=Math.ceil((GEN.lastAt+90000-Date.now())/1000);if(wait>0){cMsg.textContent='One creation every 90 seconds: try again in '+wait+' s.';return}
+  GEN.busy=true;cGo.disabled=true;cMsg.textContent='Claude is building it… (the first time, Claude asks if this game may use your account)';
+  try{const spec=cleanSpec(await SAMP.json(genPrompt(idea),{modelTier:'quick',cache:false}));if(!spec)throw {code:'bad_shape'};
+    const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);const d={lv:WD.level,x:+(dog.x+Math.sin(dog.heading)*2.4).toFixed(2),z:+(dog.z+Math.cos(dog.heading)*2.4).toFixed(2),spec,by:S.name,t:Date.now()};
+    genSpawn(id,d);GEN.lastAt=Date.now();arcade('できた!','CREATED!','clear');sfx.tada();S.points+=30;complete('create');
+    let saved=false;if(DBCAP){try{await DBCAP.collection('creations').doc(id).set(d);saved=true}catch(e){}}
+    cMsg.textContent=saved?spec.name+' is in the village now, for every player.':spec.name+' is here, but only for you this time (it couldn\'t be saved).';setTimeout(closeCreate,1600)}
+  catch(e){const code=e&&e.code;cMsg.textContent=code==='not_granted'?'Claude wasn\'t allowed, so nothing was made.':code==='rate_limited'?'Your Claude account is busy or out of messages right now. Try again later.':'That idea didn\'t work out. Try describing it differently.'}
+  finally{GEN.busy=false;cGo.disabled=false}}
+$('#createBtn').addEventListener('click',()=>openCreate());$('#createClose').addEventListener('click',closeCreate);cGo.addEventListener('click',()=>genCreate());
+cIdea.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();genCreate()}else if(e.key==='Escape')closeCreate()});
+cBox.addEventListener('pointerdown',e=>{if(e.target===cBox)closeCreate()});for(const ch of cBox.querySelectorAll('.chip'))ch.addEventListener('click',()=>{cIdea.value=ch.textContent;cIdea.focus()});
 function dbDecor(X){const ups=[];
   const mosaic=canvasTex(256,256,(x,w,h)=>{x.fillStyle='#d3c9b3';x.fillRect(0,0,w,h);for(let i=0;i<2500;i++){x.fillStyle='rgba(0,0,0,'+(Math.random()*0.06)+')';x.fillRect(Math.random()*w,Math.random()*h,2,2)}
     x.strokeStyle='#58544d';x.lineWidth=8;for(let k=-1;k<3;k++){x.beginPath();for(let i=0;i<=w;i+=4){const y=k*128+64+Math.sin(i/w*Math.PI*2)*28;i?x.lineTo(i,y):x.moveTo(i,y)}x.stroke()}});
@@ -1257,7 +1327,7 @@ function steal(){if(bbq.inRange)stealFromBBQ();else if(picnic.inRange)stealPicni
 // ================= State, HUD =================
 const S={stash:[],started:false,t:0,hour:7.5,day:1,hunger:80,energy:95,happy:70,points:0,name:'Mango',todos:{},fetchN:0,digN:0,found:[],swum:false,hungerHintT:0,energyHintT:0};
 const TODOS=[['greet','Greet someone getting off the bus'],['chaseBus','Chase the bus along '+WD.roadName],['fetch','Find Ming on the beach and play fetch (3 times)'],['dig','Dig up 3 buried treasures'],
-  ['swim','Swim in the sea, then shake off'],['cat','Chase the village cat'],['snack','Sit nicely at the store for dim sum'],['nap','Nap in your bed'],['stash','Carry 3 sticks, stones or shells home to your bed'],['bbq','Steal food from the BBQ and get away with it'],['pats','Sit next to people for pats (3 people)'],['slipper','Find Granny Chan\'s lost slipper'],['sunset','Sit by the sea at sunset'],['minibus','Sit at the Ha Yeung bus stop to hail a green minibus'],['picnic','Snatch a snack from the beach picnic'],['bus','Ride the bus between Ha Yeung and Discovery Bay'],['cart','Drive a golf cart in Discovery Bay'],['police','Outrun the police in a golf cart']];
+  ['swim','Swim in the sea, then shake off'],['cat','Chase the village cat'],['snack','Sit nicely at the store for dim sum'],['nap','Nap in your bed'],['stash','Carry 3 sticks, stones or shells home to your bed'],['bbq','Steal food from the BBQ and get away with it'],['pats','Sit next to people for pats (3 people)'],['slipper','Find Granny Chan\'s lost slipper'],['sunset','Sit by the sea at sunset'],['minibus','Sit at the Ha Yeung bus stop to hail a green minibus'],['picnic','Snatch a snack from the beach picnic'],['bus','Ride the bus between Ha Yeung and Discovery Bay'],['cart','Drive a golf cart in Discovery Bay'],['police','Outrun the police in a golf cart'],['create','Create something new for the village (✨ Create)']];
 function renderTodos(){const ul=$('#todoList');ul.innerHTML='';let n=0;
   for(const [k,label] of TODOS){const li=document.createElement('li');let t=label;if(k==='fetch'&&!S.todos[k])t+=' · '+S.fetchN+'/3';if(k==='dig'&&!S.todos[k])t+=' · '+S.digN+'/3';if(k==='pats'&&!S.todos[k])t+=' · '+(S.patsDay||0)+'/3';if(k==='stash'&&!S.todos[k])t+=' · '+(S.stashDay||0)+'/3';li.textContent=t;if(S.todos[k]){li.className='done';n++}ul.appendChild(li)}
   $('#todoCount').textContent=n+'/'+TODOS.length;$('#tCount').textContent=S.found.length;$('#tList').textContent=S.found.slice(-3).reverse().join(' · ')}
@@ -1331,7 +1401,7 @@ const keys={};
 addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
   if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();
   if(keys[k])return;keys[k]=true;if(!S.started||S.leaving)return;
-  if(k===' ')doBark();else if(k==='e')toggleSniff();else if(k==='f')doDig();else if(k==='c')doSit();else if(k==='m')toggleMute();else if(k==='r')toggleRun();else if(k==='g')dropBall();else if(k==='t')steal();else if(k==='x')doCtx();else if(k==='q'){bigEl.hidden?openBigMap():closeBigMap()}else if(k==='escape')closeBigMap()});
+  if(k===' ')doBark();else if(k==='e')toggleSniff();else if(k==='f')doDig();else if(k==='c')doSit();else if(k==='m')toggleMute();else if(k==='r')toggleRun();else if(k==='g')dropBall();else if(k==='t')steal();else if(k==='x')doCtx();else if(k==='n'){e.preventDefault();openCreate()}else if(k==='q'){bigEl.hidden?openBigMap():closeBigMap()}else if(k==='escape')closeBigMap()});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 const joy={id:null,x:0,y:0,mag:0},joyEl=$('#joy'),knob=$('#knob');
@@ -1432,7 +1502,7 @@ function updateDog(dt){if(dog.cart){rideCart(dt);return}dog.sitT=dog.posture==='
   if(S.started&&!S.leaving){if(keys.w||keys.arrowup)iy+=1;if(keys.s||keys.arrowdown)iy-=1;if(keys.d||keys.arrowright)ix+=1;if(keys.a||keys.arrowleft)ix-=1;if(joy.mag>0.12){ix=joy.x;iy=-joy.y}}
   const mag=Math.min(1,Math.hypot(ix,iy));const run=(keys.shift||runLock||joy.mag>0.88)&&!dog.sniff&&!dog.swimming;dog.runT=run&&mag>0.1?Math.min(2.2,(dog.runT||0)+dt):0;let target=0;
   if(mag>0.1&&!busy()){standUp();const sy=Math.sin(cam.yaw),cy=Math.cos(cam.yaw);const wx=sy*iy-cy*ix,wz=cy*iy+sy*ix;
-    dog.heading+=angDiff(dog.heading,Math.atan2(wx,wz))*Math.min(1,dt*9);target=(dog.swimming?1.8:run?2.5*lerp(1.8,7,dog.runT/2.2):dog.sniff?1.3:2.5)*Math.min(1,mag*1.25)}
+    dog.heading+=angDiff(dog.heading,Math.atan2(wx,wz))*Math.min(1,dt*9);target=(dog.swimming?1.8:run?2.5*lerp(1.8,7,dog.runT/2.2):dog.sniff?1.3:2.5)*Math.min(1,mag*1.25)*(dog.zoomT>0?1.8:1)}
   if(dog.autoRun>0){dog.autoRun-=dt;if(dog.autoRun<2.1){const aw=Math.atan2(dog.x-dog.autoFrom[0],dog.z-dog.autoFrom[1])+Math.sin(S.t*3)*0.35;dog.heading+=angDiff(dog.heading,aw)*Math.min(1,dt*7);target=5.8;cam.lastDrag=S.t-2}}
   dog.speed=lerp(dog.speed,target,Math.min(1,dt*6));
   if(dog.speed>0.01){const step=dog.speed*dt,fx=Math.sin(dog.heading),fz=Math.cos(dog.heading);const g0=groundAt(dog.x,dog.z);
@@ -1561,7 +1631,7 @@ function updateWorld(dt){
   mkCat.visible=sn&&cat.state!=='roof'&&cd<60;mkCat.position.set(cat.x,cat.y+0.8,cat.z);
   mkBall.visible=sn&&ball.state==='ground';mkBall.position.set(ball.x,ball.y+0.5,ball.z);
   if(sn&&nearest&&Math.random()<dt*14){const u=Math.random()*Math.min(1,20/Math.max(nd,1));const px=lerp(dog.x,nearest.x,u),pz=lerp(dog.z,nearest.z,u);glow.emit(px+(Math.random()-0.5)*0.6,groundAt(px,pz)+0.25+Math.random()*0.3,pz+(Math.random()-0.5)*0.6,0,0.25,0,1.3,C_GOLD,0)}
-  if(dbUpd)dbUpd(dt);mpUpd(dt);updateItems(dt);updateFeast(dt);updateBBQ(dt);updatePicnic(dt);updateWholesome(dt);dust.update(dt);glow.update(dt)}
+  if(dbUpd)dbUpd(dt);mpUpd(dt);genUpd(dt);updateItems(dt);updateFeast(dt);updateBBQ(dt);updatePicnic(dt);updateWholesome(dt);dust.update(dt);glow.update(dt)}
 
 // ================= Camera =================
 function updateCamera(dt){
@@ -1612,7 +1682,7 @@ function snapshot(){return {level:WD.level,x:dog.x,z:dog.z,heading:dog.heading,h
 function start(){S.started=true;$('#start').hidden=true;sfx.init();renderTodos();
   if(WD.level==='db'){toast('Welcome to Discovery Bay, '+S.name+'! No cars here: people zip around in golf carts.');toast('Find a parked golf cart and hop on, or catch the bus back to Ha Yeung.')}
   else{toast('Welcome home, '+S.name+'! Your food bowl is by the red front door.');toast('Uphill west is the bus stop on Clear Water Bay Road. The beach is about 500 m north-east. Check the map.')}}
-function destroy(){dead=true;try{if(MP.unsub)MP.unsub()}catch(e){}cancelAnimationFrame(rafId);AC.abort();clearTimeout(arcTimer);
+function destroy(){dead=true;try{if(GEN.unsub)GEN.unsub()}catch(e){}cBox.hidden=true;try{if(MP.unsub)MP.unsub()}catch(e){}cancelAnimationFrame(rafId);AC.abort();clearTimeout(arcTimer);
   scene.traverse(o=>{if(o.geometry)o.geometry.dispose();const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms){for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}m.dispose()}});
   renderer.renderLists.dispose();renderer.dispose();try{renderer.forceContextLoss()}catch(e){}renderer.domElement.remove();
   $('#bubbles').textContent='';$('#pops').textContent='';toastEl.classList.remove('show');$('#chaseHud').hidden=true;$('#vignette').classList.remove('on');bigEl.hidden=true;
