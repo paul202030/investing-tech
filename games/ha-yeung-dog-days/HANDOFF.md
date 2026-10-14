@@ -167,3 +167,8 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 - **Missions rewritten:** Auntie or any giver; 2–4 steps; new types race (own countdown), collect (n pickups), gift, swim, nap, ride (cart or player vehicle), fly (altitude, only if a flying creation exists). A giver's label goes into the prompt only as a quoted name tag.
 - New to-do `booth` (23 total).
 - Test `tests/run26_coins_booths_givers.js` (fake Claude/db/user) passed: wallet load, booth with owner, 5 plays, giver person, 2-step mission. Chat, flying, etc. from #7 are still not run end to end.
+
+## #10 · 2026-10-15 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+- The user hit "Graphics paused" (WebGL context lost) on the MacBook Air after a long session in v17 (950 points, chat open). Fix: on `webglcontextlost` the level now rebuilds itself from `snapshot()` one quality step lower (`rebuildLevel()`, `S.recover`, "Graphics hiccup, restoring…" fade, then "Graphics restored" toast). The Reload card only appears after more than 3 losses in a minute or before the game has started. Script: `pipeline/context_recovery_xform.py`; test: `tests/run27_context_recovery.js` (forces loss with WEBGL_lose_context; passed).
+- Root cause not pinned down. Suspects for GPU memory growth in long sessions: every creation part and every seeded stick gets its own geometry and material; dug holes are removed but not disposed; "rain" effect copies. Worth sharing geometries/materials if it keeps happening.

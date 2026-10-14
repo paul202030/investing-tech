@@ -331,6 +331,8 @@ let ROOM=null;try{if(window.claude&&typeof window.claude.use==='function')window
 function buildLevel(id,data,arrive){const AC=new AbortController(),P=EventTarget.prototype,orig=P.addEventListener;
   P.addEventListener=function(t,f,o){if(typeof o==='boolean')o={capture:o};return orig.call(this,t,f,Object.assign({signal:AC.signal},o||{}))};
   try{return runLevel(id,data,arrive,AC)}finally{P.addEventListener=orig}}
+const RECOV={times:[]};
+function rebuildLevel(id,data){const old=LV;LV=null;if(old)try{old.destroy()}catch(e){}setTimeout(()=>{try{LV=buildLevel(id,data,false)}catch(e){console.error(e);fade(false);const el=$('#lostMsg');if(el)el.hidden=false}},80)}
 function switchLevel(id,carry){const old=LV;LV=null;if(old)try{old.destroy()}catch(e){console.error(e)}
   setTimeout(()=>{try{LV=buildLevel(id,carry,true)}catch(e){console.error(e);fade(false)}},40)}
 
@@ -1849,7 +1851,9 @@ function lowerQuality(silent){if(quality===0)return;quality--;
   if(quality===1){renderer.setPixelRatio(Math.min(1.1,devicePixelRatio));sun.castShadow=false;if(!silent)toast('Switched to lighter graphics so the game runs smoothly.')}
   else{renderer.setPixelRatio(Math.min(0.9,devicePixelRatio));scene.fog.far=1600;camera.far=2600;camera.updateProjectionMatrix();if(!silent)toast('Switched to the lightest graphics mode.')}
   renderer.setSize(innerWidth,innerHeight)}
-renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();lost=true;const el=$('#lostMsg');if(el)el.hidden=false});
+renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();if(lost||dead)return;lost=true;const now=Date.now();RECOV.times=RECOV.times.filter(t=>now-t<60000);RECOV.times.push(now);
+  if(RECOV.times.length>3||!S.started){const el=$('#lostMsg');if(el)el.hidden=false;return}
+  fade(true,'Graphics hiccup, restoring…');setTimeout(()=>{if(dead)return;const sn=snapshot();sn.quality=Math.max(0,quality-1);sn.recover=true;rebuildLevel(LEVEL,sn)},300)});
 function frame(now){if(lost||dead)return;const raw=(now-last)/1000;const dt=Math.min(0.05,raw);last=now;
   if(S.started&&raw<1){perfSum+=raw;perfN++;perfT+=raw;if(perfT>2.5){if(perfSum/perfN>0.045)lowerQuality();perfT=perfSum=perfN=0}}
   rafId=requestAnimationFrame(frame);try{step(dt);if(sun.castShadow&&(frameNo&1)===0)renderer.shadowMap.needsUpdate=true;renderer.render(scene,camera)}catch(err){if(!frame.warned){frame.warned=true;console.error(err)}}}
@@ -1858,6 +1862,7 @@ function frame(now){if(lost||dead)return;const raw=(now-last)/1000;const dt=Math
 function snapshot(){return {level:WD.level,x:dog.x,z:dog.z,heading:dog.heading,hour:S.hour,day:S.day,hunger:S.hunger,energy:S.energy,happy:S.happy,points:S.points,name:S.name,todos:S.todos,fetchN:S.fetchN,digN:S.digN,found:S.found,started:S.started,
   stash:S.stash,stashN:S.stashN,stashDay:S.stashDay,patsDay:S.patsDay,swum:S.swum,carryHint:S.carryHint,sniffHinted:S.sniffHinted,cartHint:S.cartHint,villageHint:S.villageHint,quality,runLock,breed:S.breed,coins:S.coins}}
 function start(){S.started=true;$('#start').hidden=true;sfx.init();renderTodos();setTimeout(()=>{if(!dead&&!SAMP&&!sessionStorage.__dogTip){try{sessionStorage.__dogTip=1}catch(e){}toast('Tip: sign in to Claude to chat with villagers, get Auntie\'s missions and create things.')}},15000);
+  if(S.recover){toast('Graphics restored in a lighter mode. Carry on!');return}
   if(WD.level==='db'){toast('Welcome to Discovery Bay, '+S.name+'! No cars here: people zip around in golf carts.');toast('Find a parked golf cart and hop on, or catch the bus back to Ha Yeung.')}
   else{toast('Welcome home, '+S.name+'! Your food bowl is by the red front door.');toast('Uphill west is the bus stop on Clear Water Bay Road. The beach is about 500 m north-east. Check the map.')}}
 function destroy(){dead=true;chBox.hidden=true;bBox.hidden=true;misHud.hidden=true;try{if(GEN.unsub)GEN.unsub()}catch(e){}cBox.hidden=true;try{if(MP.unsub)MP.unsub()}catch(e){}cancelAnimationFrame(rafId);AC.abort();clearTimeout(arcTimer);
@@ -1883,7 +1888,7 @@ function boot(data,arrive){data=data||{};if(data.name)S.name=data.name;
   setTimeout(()=>{if(dead)return;try{const hidden=[];scene.traverse(o=>{if(!o.visible){hidden.push(o);o.visible=true}});renderer.compile(scene,camera);renderer.shadowMap.needsUpdate=true;renderer.render(scene,camera);hidden.forEach(o=>o.visible=false)}catch(e){}
     if(arrive){S.started=true;$('#start').hidden=true;renderTodos();setTimeout(()=>fade(false),250);
       toast(WD.level==='db'?'Welcome to Discovery Bay! No cars here, just golf carts. Find a parked one (white dots on the map) and hop on.':'Back home in Ha Yeung. Your bed and bowl are by the red front door.');complete('bus')}
-    else{sb.disabled=false;sb.textContent='Start the day';if(data.started)start()}},60);
+    else{sb.disabled=false;sb.textContent='Start the day';if(data.started){S.recover=!!data.recover;start();if(data.recover)setTimeout(()=>fade(false),250)}}},60);
   rafId=requestAnimationFrame(frame)}
 boot(BOOT,ARRIVE);
 return {snapshot,destroy};
