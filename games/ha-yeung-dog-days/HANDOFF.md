@@ -64,3 +64,9 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 `data/discovery-bay/world.json` is already built (centre DB Plaza 22.29589, 114.0165; main road "Discovery Bay Road"; stop at the internal bus terminus; 6 golf cart spots; Tai Pak Beach; fisherman near the ferry pier).
 
 **Ideas backlog:** saved progress; treasure Dog-dex with rares; graded daily heists and combos; photo postcards; shared leaderboard; multiplayer packs/territories via the `room` + `db` artifact capabilities (feasible for friend groups; there is no authoritative server).
+
+## #2 · 2026-10-14 · https://claude.ai/code/session_01DJtiMEA9gjnoS7fY1wfeK7
+
+- Picnic loot enlarged so it reads in the dog's mouth: `ITYPES.chicken` is now a big drumstick (meat ~0.3 m with visible bone), `ITYPES.lumpia` a bundle of three 0.38 m rolls. Tested headless (no errors), published as game version 11.
+- Publishing now goes from this repo file: Artifact tool with `url` = the game link and `file_path` = `games/ha-yeung-dog-days/index.html`.
+- Coordination: the user may run a separate Discovery Bay session. Before editing `index.html`, `git pull` this branch; before publishing, make sure the live game isn't newer than your copy (the Artifact tool refuses stale publishes, so merge rather than force).

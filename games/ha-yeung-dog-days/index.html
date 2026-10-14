@@ -669,8 +669,8 @@ const ITYPES={
   tomahawk:{label:'a giant tomahawk steak',r:0.08,make(g){const meat=new THREE.Mesh(SPH,new THREE.MeshLambertMaterial({map:steakTex}));meat.scale.set(0.27,0.07,0.2);meat.position.x=0.12;g.add(meat);
     sph(mat(0xf2e3c6),0.07,0.05,0.06,0.33,0.01,0.05,g);rodX(mat(0xf3ead6),0.03,0.035,0.55,-0.36,0.02,0,g);sph(mat(0xf3ead6),0.045,0.04,0.045,-0.64,0.02,0,g)}},
   bone:{label:'a giant tomahawk bone',r:0.04,make(g){rodX(mat(0xf3ead6),0.03,0.035,0.55,0,0,0,g);sph(mat(0xf3ead6),0.05,0.045,0.05,-0.29,0,0,g);sph(mat(0x8a3a24),0.08,0.04,0.06,0.25,0,0,g)}},
-  chicken:{label:'a piece of fried chicken',r:0.05,make(g){sph(mat(0xb5651e),0.065,0.055,0.09,0.04,0,0,g);rodX(mat(0xf3ead6),0.014,0.014,0.12,-0.08,0,0,g);sph(mat(0xf3ead6),0.022,0.022,0.022,-0.14,0,0,g)}},
-  lumpia:{label:'a handful of lumpia',r:0.04,make(g){const m=mat(0xd9a04a);for(let i=0;i<3;i++)rodX(m,0.022,0.022,0.17,0,0.01*i,(i-1)*0.045,g)}},
+  chicken:{label:'a big piece of fried chicken',r:0.1,make(g){const cr=mat(0xb5651e),cr2=mat(0xd48a35);sph(cr,0.15,0.12,0.12,0.1,0,0,g);sph(cr2,0.07,0.05,0.07,0.16,0.08,0.03,g);sph(cr2,0.06,0.045,0.06,0.03,0.09,-0.04,g);rodX(mat(0xf3ead6),0.028,0.028,0.22,-0.14,0,0,g);sph(mat(0xf3ead6),0.045,0.04,0.045,-0.26,0,0,g)}},
+  lumpia:{label:'a bundle of lumpia',r:0.07,make(g){const m=mat(0xd9a04a),m2=mat(0xc0832f);for(let i=0;i<3;i++){rodX(i===1?m2:m,0.045,0.045,0.38,0,0.03*(i===1?1:0),(i-1)*0.08,g);sph(m2,0.045,0.045,0.03,0.19,0.03*(i===1?1:0),(i-1)*0.08,g)}}},
   shell:{label:'a sea shell',r:0.03,make(g){const c=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.09,9),IM.shell);c.rotation.x=Math.PI/2;c.scale.set(1,1,0.45);g.add(c)}}};
 const items=[];
 function addItem(type,x,z){const T=ITYPES[type];const g=new THREE.Group();T.make(g);g.traverse(m=>{if(m.isMesh)m.castShadow=true});scene.add(g);
