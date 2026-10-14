@@ -137,3 +137,17 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 
 ### User ideas parked (not started; the user wants to keep spending low)
 - More dog breeds (e.g. a bichon frise as a playable choice), and GTA-style missions given by a Chinese auntie (a mission giver with chained objectives: deliveries, heists, escapes on a timer). Both are feasible on the current engine.
+
+## #7 · 2026-10-14 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+### What changed (game version 16)
+- **Open-ended creations:** the spec now allows `ride: "drive" | "fly"` (vehicle, front towards +x, `seat`, up to 4 m) and `talk` + `hello` (a character you can chat with, up to 3 m). More effects: fireworks, teleport, night, day (plus giant, tiny, zoom, rain, party). Vehicles go into `rides` (hop on with X). Drive uses `rideCart`; fly uses `rideFly()`: hold W to climb (needs more than 10 m/s), let go to glide, S to dive and land, A/D to steer, Shift for turbo; it bonks off buildings below roof height and you can hop off only on land. Characters go into `genFolk` and can be chatted with.
+- **Chat** (context button "Chat", key X, within 3.6 m): Granny Chan, Auntie Wong (once a mission is running), Uncle Lam the fisherman, BBQ Uncle, Ming, the village helpers, and player-made characters. `sample.json` on the player's account returns `{reply, action: none|treat|pat}`; a treat (egg tart) at most every 2 min per person. Persona text is in `PERSONAS()`.
+- **Auntie Wong's missions** ("Mission" next to her): Claude writes a 1–3 step mission from a whitelist: goto, deliver (stick/stone/shell/cone/branch), bark, sit, dig, steal (bbq/picnic), and in DB drive and police. `misClean()` drops anything that doesn't map to a real place or person. A timer runs 60–300 s, the reward is clamped to 100–800, there's a yellow target marker and minimap dot, a `#missionHud`, and banners ミッション開始! / ミッションクリア! / しっぱい…. Hooks: `misEv()` is called from finishLoot, endPolice(win), doBark, finishDig.
+- **Bichon frise:** breed choice on the start card (`makeDog(breed)`: white, pom-pom head, short muzzle, tail up, `D.k` = 0.62 scale). `D` is now `let`; the breed travels in snapshots and multiplayer presence (`br`).
+- **Playable by anyone:** everything works signed out; Claude features show a short note, plus one gentle tip after 15 s for signed-out players.
+- New to-dos: chat, mission, fly (22 total).
+- Tests: `tests/run25_rides_chat_missions.js` was written (fake Claude: bichon, chat, mission, plane) but **not run**: the user stopped the long run. Only a load smoke test was done (no errors). Run it next time.
+
+### Ideas from the user (not built)
+- Players setting up their own mini-games inside the world (e.g. a gambling booth / game stall they design). Feasible later as a creation kind with a small whitelisted rule set (e.g. a stall with a coin-flip / guess game paying good-dog points); not started.
