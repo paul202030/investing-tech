@@ -91,3 +91,24 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 ### Next
 - Not tested on a real iPhone: check joystick driving feel, the 150 px green button, and memory after several bus trips (each trip disposes the old renderer).
 - **Part 2** (unchanged): friendly 唐狗 village dogs near the picnic spots in both places; Discovery Bay café/picnic life. DB currently reuses Ha Yeung's cast (Auntie at the café, BBQ uncle, Granny Chan, Ming, fisherman).
+
+## #4 · 2026-10-14 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+### What changed (game version 13, same link)
+- **Discovery Bay look** (`dbPrep()` runs before buildings are indexed; `dbDecor()` adds the props): cross-shaped footprints become 16–23-floor cream towers (Overture had no heights; every building was ≤12 m). Villas under 400 m² (Beach Village, Headland) get pastel walls and hip roofs in terracotta or slate (`hipRoof()` built on an oriented bounding box). Village houses and the pier have their own facade textures. Walls now reach the ground after the terrain is reshaped.
+- **Plaza:** the piazza at (10,-20) is levelled to 13 m with mosaic paving, a fountain and a ring of palms; the "愉景廣場 DB PLAZA" sign sits on the nearest facade. Only a 21 m disc is paved: the lawn between it and the mall is still grass (an unfinished tweak; see the plaza part of `pipeline/discovery_bay_look_xform.py`).
+- **D'Deck** (`DECK` polyline, from the real shore path): a level promenade 1.7 m above the sea with mosaic paving, a stone balustrade, black-and-yellow bollards, café tables under red and black umbrellas, and a "BAY COFFEE" sign (fictional name).
+- **Pier and ferry:** the pier footprint is raised onto a jetty and carries a blue "DISCOVERY BAY PIER" sign. A ferry docks for 45 s, leaves, stays away for 60 s and comes back, sounding its horn when you're near.
+- **Tai Pak Beach** sand is golden; palms line the back of the beach.
+- **Cove village** (south-east corner, flat ground west of the cove): 9 tiled three-storey village houses with balconies, laundry lines and roof tanks, a red shrine, a "往稔樹灣 To Nim Shue Wan" signpost, and a day-off get-together (folding table, stools, music). Five villagers chat, give pats and take gifts (they're in `people()`).
+- **Golf carts:** top speed 16 m/s, turbo 22 m/s (Shift / Run / full joystick), movement in substeps so fast carts don't pass through walls, camera pulls back with speed, and the HUD shows km/h. Resident carts run at 8–10 m/s.
+- **Police chase:** after 40–90 s of driving above 5 m/s, a patrol car with a blue-and-yellow check band and flashing lights spawns 50–95 m behind you on the main road. You get "逃げろ! POLICE!", a siren, loudspeaker lines ("Dog! Get out of the cart!") and a chase HUD with a 30 s countdown. Get 90 m away or last 30 s to escape (+500, to-do `police`). If it stays within 3.6 m for 0.7 s you're BUSTED: the dog is put out of the cart and patted. Hopping off ends the chase. 18 to-dos in total.
+- Tests: `tests/run22.js` (DB styles, walking across the piazza, turbo, police spawn/busted/escaped, screenshots), run with a debug copy that boots into DB. Everything passed. Ha Yeung was only smoke-tested after the building refactor (loads, no errors); `run21.js` was not re-run on this build.
+
+### Learned
+- In the headless browser the DB scene runs at about 3 fps, so tests must wait for conditions (`waitForFunction`), never fixed sleeps.
+- Overture places give good anchors for DB: plaza (0,0), D'Deck (14,-45), ferry pier (128,-97), Tai Pak Beach (-139,-256), bus terminus (113,17).
+
+### Status / next
+- The user said the game feels a bit boring and is thinking of stopping. If it continues, the ideas that came up were: make the arcade chases the core loop (graded daily heists and chases, combos, leaderboard), and multiplayer for friends via the artifact `room` capability (no game server to run; check costs and limits in the `artifact-capabilities` skill before promising anything).
+- Open nits: pave the rest of the plaza; real-device performance check of DB (palms, towers, ferry) on the iPhone.
