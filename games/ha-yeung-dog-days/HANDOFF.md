@@ -70,3 +70,24 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 - Picnic loot enlarged so it reads in the dog's mouth: `ITYPES.chicken` is now a big drumstick (meat ~0.3 m with visible bone), `ITYPES.lumpia` a bundle of three 0.38 m rolls. Tested headless (no errors), published as game version 11.
 - Publishing now goes from this repo file: Artifact tool with `url` = the game link and `file_path` = `games/ha-yeung-dog-days/index.html`.
 - Coordination: the user may run a separate Discovery Bay session. Before editing `index.html`, `git pull` this branch; before publishing, make sure the live game isn't newer than your copy (the Artifact tool refuses stale publishes, so merge rather than force).
+
+## #3 · 2026-10-14 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+### What changed (Discovery Bay part 1, live as game version 12, same link)
+- **Two-level engine.** The old game IIFE body is now `runLevel(LEVEL, BOOT, ARRIVE, AC)` and returns `{snapshot, destroy}`. `buildLevel()` patches `EventTarget.prototype.addEventListener` while a level builds so every listener gets the level's AbortController signal; `destroy()` aborts them, cancels the RAF loop (`rafId`, `dead`), disposes geometries, materials, textures and the renderer, removes the canvas and clears bubbles/pops/toasts. `switchLevel(id, snapshot)` destroys the old level, then builds the new one 40 ms later. The audio (`sfx`) now lives outside levels, so there's one AudioContext.
+- **Carried state** goes through `snapshot()`: name, points, day/time, stats, to-dos and counters, treasures, hints, run lock, graphics quality. The stash is now `S.stash` (a list of item types); each level rebuilds it around its own bed via `stashPlace()`. Hot reload also restores the level (`snapshot.level`).
+- **Discovery Bay level:** `<script type="application/json" id="worldDataDB">` holds `data/discovery-bay/world.json`. Level text comes from world flags (`name`, `nameZh`, `otherDest`, `signText`, `roadName`); Ha Yeung's defaults live in `LVDEF.hy`. In DB: taxi and green minibus never spawn (`wait=Infinity`), there's no red door (`places.noHome`; the bed is a "Rest spot"), the café sign is 愉景茶餐廳 DB CAFÉ, and the stop sign and toasts are renamed.
+- **Bus travel:** the bus now dwells 12 s. A green context button (`#aCtx`, key X) offers **Board bus** within 10 m of the stop while it dwells. A fade overlay (`#fade`) shows "Taking the bus to …"; you arrive about 6 m past the other stop's shelter, with the bus parked beside you. The bus headsign shows where boarding takes you (`otherDest`).
+- **Golf carts:** six parked carts at `places.carts`. **Hop on** within 2.8 m (X or the button). The dog sits at the wheel, steered with WASD/arrows or the joystick (up = drive, down = brake/reverse, sideways = steer); max 6.5 m/s forward, 2.5 m/s reverse. The cart bumps off buildings (two `pushOutB` circles, bounces back), stops at the water's edge and on very steep ground, and pushes off soft colliders and other carts. **Hop off** when below 1.2 m/s. Three resident carts with drivers use the vehicle system on Discovery Bay Road instead of taxis (they beep, don't nag).
+- Two new to-dos (17 total): `bus` (ride between the villages, done on arrival) and `cart` (drive 60 m).
+- `tests/run21.js` covers all of it. `pipeline/discovery_bay_part1_xform.py` is the edit script used (record only; it refuses to run twice).
+
+### Learned
+- The live artifact = `index.html` plus about 550 bytes of wrapper (doctype/meta/style before `<title>`, `</body></html>` after). To check whether live is newer, compare from `<title>` onward.
+- SwiftShader runs game time at about ¼ speed, so drive/walk tests need long waits or a pre-set state (the test sets `cart.dist=50` to check the cart to-do).
+- The debug hook used for tests (not shipped) is inserted at the start of `updateDog`: `window.__g={dog,cwAt,cam,S,bus,taxi,mini,carts,aiCarts,PL,WD,keys,ctxAction,placeVehicle,items,BL,bldAt,gridH,LEVEL};`. Run with `TLIB=<dir with three@0.128.0 + playwright> PERF=<perf copy> OUT=<shots dir> node tests/run21.js`.
+- The page is now about 3.0 MB (two worlds). Only the active world is parsed and built.
+
+### Next
+- Not tested on a real iPhone: check joystick driving feel, the 150 px green button, and memory after several bus trips (each trip disposes the old renderer).
+- **Part 2** (unchanged): friendly 唐狗 village dogs near the picnic spots in both places; Discovery Bay café/picnic life. DB currently reuses Ha Yeung's cast (Auntie at the café, BBQ uncle, Granny Chan, Ming, fisherman).

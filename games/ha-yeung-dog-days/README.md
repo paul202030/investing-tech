@@ -11,13 +11,14 @@ A browser game where you live a day as a golden retriever in Ha Yeung village (C
 |---|---|
 | `index.html` | The whole game: one self-contained page (three.js r128 from cdnjs + the Ha Yeung world data embedded). Open it in a browser. |
 | `data/ha-yeung/world.json` | Processed world for Ha Yeung: 3 m height grid, land classes, roads, 495 buildings, game places. |
-| `data/discovery-bay/world.json` | Processed world for Discovery Bay (next level, not wired into the game yet). |
+| `data/discovery-bay/world.json` | Processed world for Discovery Bay, embedded in `index.html` as the second level (`#worldDataDB`); reach it by bus. |
 | `data/*/overture-*.json` | Raw Overture Maps extracts (roads, buildings, land, land use) for each area. Water polygons and elevation tiles are left out (large, re-fetchable). |
 | `pipeline/ov.py` | Pulls Overture Maps data for a bounding box straight from the public S3 bucket (HTTP range reads, no DuckDB extensions needed). |
 | `pipeline/build_data.py` | Builds a world: samples elevation tiles, canopy/coast corrections, flattens roads, levels house platforms, writes `world_base.json`. |
 | `pipeline/places.py` / `places_db.py` | Picks game locations (home, bus stop, store, beach, fisherman, dig spots, golf cart parking) for Ha Yeung / Discovery Bay. |
 | `pipeline/los.py` | Line-of-sight check (can you see the sea from Ha Yeung Road?). |
-| `tests/run*.js` | Playwright scripts used to smoke-test the game headlessly. |
+| `tests/run*.js` | Playwright scripts used to smoke-test the game headlessly (`run21.js`: bus between levels, carried state, golf carts). |
+| `pipeline/discovery_bay_part1_xform.py` | One-shot record of the edit script that added the two-level engine, bus travel and golf carts (asserts it hasn't run already). |
 
 ## Rebuilding a world
 
