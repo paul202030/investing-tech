@@ -112,3 +112,18 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 ### Status / next
 - The user said the game feels a bit boring and is thinking of stopping. If it continues, the ideas that came up were: make the arcade chases the core loop (graded daily heists and chases, combos, leaderboard), and multiplayer for friends via the artifact `room` capability (no game server to run; check costs and limits in the `artifact-capabilities` skill before promising anything).
 - Open nits: pave the rest of the plaza; real-device performance check of DB (palms, towers, ferry) on the iPhone.
+
+## #5 · 2026-10-14 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+### What changed (game version 14, same link, now published with `capabilities: {room: {}}`)
+- **Light multiplayer** through the artifact `room` capability: presence only (no topics, no db, nothing stored). `ROOM` is resolved once outside levels (`claude.use('room')`; `null` means single-player as before). Each level sends `{lv,x,z,y,h,s,n,b}` about 10 times a second (`s` = stand/sit/lie/swim/cart, `b` = bark counter). Friends on the same level are drawn with `makeDog()` and a "🐾 name" bubble, simply animated, sitting in a cart when `s:'cart'`; barks show "Woof! Woof!" and play the sound nearby. Friends appear as yellow dots on the minimap, and a toast says when one joins. Code: `MP` / `mpUpd()` next to `dbDecor`. Edit script: `pipeline/multiplayer_xform.py`.
+- Test: `tests/run23_multiplayer.js` fakes `window.claude.use('room')` with an inline script and plays a friend (shown, rides a cart, removed on leave). It passed with no errors. Not tested with two real people yet.
+
+### Learned
+- Who can join a room: signed-in members of the owner's organisation plus invited guests. Signed-out or public-link viewers can't connect (they still play solo). The user asked to drop the sign-in requirement; that's the platform's rule and can't be changed from the page.
+- Presence limits: 4 KiB per participant, coalesced to about 30 Hz; emits and presence share about 40 msgs/s; about 256 peers.
+- `page.addInitScript` doesn't apply to `setContent`; inject test shims as an inline `<script>` in the content.
+- Existing quirk (not new): at the Ha Yeung start spot the camera can sit right against the yellow plaque on the red door, filling the lower screen with yellow until you move.
+
+### Next
+- Try it with two signed-in people. Possible later additions: shared scoreboard (db), chase each other, bark emotes on a topic.

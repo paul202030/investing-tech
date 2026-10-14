@@ -283,6 +283,8 @@ const LVDEF={hy:{level:'hy',name:'Ha Yeung',nameZh:'下洋',busDest:'下洋 HA Y
 function loadWorld(id){const w=JSON.parse(document.getElementById(LEVELS[id]).textContent);const d=LVDEF[id]||{};for(const k in d)if(w[k]===undefined)w[k]=d[k];w.places.carts=w.places.carts||[];return w}
 function fade(on,msg){if(msg!==undefined)$('#fadeMsg').textContent=msg;$('#fade').classList.toggle('on',!!on)}
 let LV=null;
+// friends playing at the same time (room presence); the game works the same without it
+let ROOM=null;try{if(window.claude&&typeof window.claude.use==='function')window.claude.use('room').then(r=>{ROOM=r}).catch(()=>{})}catch(e){}
 function buildLevel(id,data,arrive){const AC=new AbortController(),P=EventTarget.prototype,orig=P.addEventListener;
   P.addEventListener=function(t,f,o){if(typeof o==='boolean')o={capture:o};return orig.call(this,t,f,Object.assign({signal:AC.signal},o||{}))};
   try{return runLevel(id,data,arrive,AC)}finally{P.addEventListener=orig}}
@@ -961,6 +963,23 @@ function updateFeast(dt){if(!feast)return;feast.t+=dt;feast.next-=dt;
 // ================= Neighbourhood BBQ: a very tempting target for a golden retriever =================
 const softColliders=[[FISH.x,FISH.z,0.6]];
 const villagers=[];const dbUpd=DBX?dbDecor(DBX):null;
+// ================= Multiplayer: friends' dogs (presence ~10 times a second, nothing stored) =================
+const MP={peers:[],dogs:new Map(),unsub:null,sendT:0,barkN:0};
+function mpUpd(dt){if(!ROOM)return;
+  if(!MP.unsub){MP.unsub=()=>{};try{MP.unsub=ROOM.onPeers(ch=>{MP.peers=ch.peers||[];for(const p of ch.joined||[]){const q=p.presence||{};if(!p.isMe&&q.lv===WD.level&&S.started)toast(String(q.n||'A friend').slice(0,14)+'\'s dog is here too!')}})||(()=>{})}catch(e){}}
+  MP.sendT-=dt;if(MP.sendT<=0&&S.started){MP.sendT=0.1;try{const r=ROOM.presence({lv:WD.level,x:+dog.x.toFixed(2),z:+dog.z.toFixed(2),y:+dog.y.toFixed(2),h:+dog.heading.toFixed(3),s:dog.cart?'cart':dog.swimming?'swim':dog.posture,n:S.name,b:MP.barkN});if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+  const seen=new Set();
+  for(const p of MP.peers){if(p.isMe)continue;const q=p.presence||{};if(q.lv!==WD.level||!isFinite(q.x)||!isFinite(q.z))continue;seen.add(p.peer);
+    let o=MP.dogs.get(p.peer);if(!o){const D2=makeDog();scene.add(D2.root);o={D:D2,g:D2.root,headY:1.25,x:q.x,z:q.z,y:isFinite(q.y)?q.y:groundAt(q.x,q.z),h:q.h||0,ph:0,b:q.b,tagT:0,cart:null};MP.dogs.set(p.peer,o)}
+    const px=o.x,pz=o.z,kk=Math.min(1,dt*10);o.x+=(q.x-o.x)*kk;o.z+=(q.z-o.z)*kk;o.y+=((isFinite(q.y)?q.y:groundAt(o.x,o.z))-o.y)*kk;o.h+=angDiff(o.h,q.h||0)*kk;
+    const sp=Math.hypot(o.x-px,o.z-pz)/Math.max(dt,1e-3),st=q.s,sit=(st==='sit'||st==='cart')?1:0,lie=st==='lie'?1:0;o.ph+=dt*Math.min(sp*3,24);
+    if(st==='cart'){if(!o.cart)o.cart=Object.assign(makeCart(0xf2f0e8),{v:0,pitch:0});o.cart.g.visible=true;o.cart.h=o.h;o.cart.x=o.x+Math.sin(o.h)*0.15+Math.cos(o.h)*0.22;o.cart.z=o.z+Math.cos(o.h)*0.15-Math.sin(o.h)*0.22;placeCart(o.cart)}else if(o.cart)o.cart.g.visible=false;
+    const Dd=o.D,a=Math.sin(o.ph)*Math.min(1,sp/2.5)*0.6*(st==='cart'?0:1);Dd.root.position.set(o.x,o.y,o.z);Dd.root.rotation.set(0,o.h,0);
+    Dd.legs.forEach((L,i)=>{const s=(i===0||i===3)?a:-a;if(L.front){L.up.rotation.x=s+sit*0.55-lie*1.45;L.kn.rotation.x=lie*0.1}else{L.up.rotation.x=s-sit*1.0-lie*1.3;L.kn.rotation.x=sit*1.7+lie*1.5}});
+    Dd.hip.position.y=0.56-sit*0.3-lie*0.36;Dd.hip.rotation.x=-sit*0.55;Dd.neck.rotation.x=0.5+lie*0.7;Dd.head.rotation.x=-Dd.neck.rotation.x-Dd.hip.rotation.x+0.5+lie*0.15;
+    Dd.tail.rotation.x=lerp(-1.15,-1.55,Math.max(sit,lie));Dd.tail.rotation.z=Math.sin(S.t*12)*0.5;
+    o.tagT-=dt;if(o.tagT<=0){o.tagT=0.8;if(q.b!==o.b){o.b=q.b;say(o,'Woof! Woof!',1.2);if(Math.hypot(o.x-dog.x,o.z-dog.z)<30)sfx.bark()}else say(o,'🐾 '+String(q.n||'Friend').slice(0,14),1.0)}}
+  for(const [id,o] of MP.dogs)if(!seen.has(id)){scene.remove(o.D.root);if(o.cart)scene.remove(o.cart.g);MP.dogs.delete(id)}}
 function dbDecor(X){const ups=[];
   const mosaic=canvasTex(256,256,(x,w,h)=>{x.fillStyle='#d3c9b3';x.fillRect(0,0,w,h);for(let i=0;i<2500;i++){x.fillStyle='rgba(0,0,0,'+(Math.random()*0.06)+')';x.fillRect(Math.random()*w,Math.random()*h,2,2)}
     x.strokeStyle='#58544d';x.lineWidth=8;for(let k=-1;k<3;k++){x.beginPath();for(let i=0;i<=w;i+=4){const y=k*128+64+Math.sin(i/w*Math.PI*2)*28;i?x.lineTo(i,y):x.moveTo(i,y)}x.stroke()}});
@@ -1277,7 +1296,7 @@ function drawMap(){const W=mapCv.width,Hh=mapCv.height,sc=W/MAPWIN;const cx=dog.
   const dot=(x,z,c,r,ring)=>{const [a,b]=to(x,z);mctx.fillStyle=c;mctx.beginPath();mctx.arc(a,b,r,0,7);mctx.fill();if(ring){mctx.strokeStyle='#1c2626';mctx.lineWidth=1;mctx.stroke()}};
   dot(PL.stop[0],PL.stop[1],'#1f6e4a',4,true);dot(PL.auntie[0],PL.auntie[1],'#c75b7a',3.5,true);dot(PL.door[0],PL.door[1],'#c4372d',4,true);
   dot(PL.kid[0],PL.kid[1],'#f2c230',4,true);dot(bbq.gx,bbq.gz,'#e8662a',4,true);dot(GR.x,GR.z,'#9a6aa8',3.5,true);dot(picnic.x,picnic.z,'#2d6fa5',3.5,true);if(fisher.g.visible)dot(FISH.x,FISH.z,'#7f8f6a',3.5,true);
-  if(bus.g.visible)dot(bus.x,bus.z,'#b8322a',4,true);if(mini.g.visible)dot(mini.x,mini.z,'#1f7a4a',3.5,true);for(const k of carts)dot(k.x,k.z,'#f6f4ee',2.6,true);for(const k of aiCarts)if(k.g.visible)dot(k.x,k.z,'#f6f4ee',2.6,true);if(police&&police.g.visible)dot(police.x,police.z,'#1d4ea0',4.5,true);for(const w of walkers)dot(w.p.g.position.x,w.p.g.position.z,'#ffffff',2.2);
+  if(bus.g.visible)dot(bus.x,bus.z,'#b8322a',4,true);if(mini.g.visible)dot(mini.x,mini.z,'#1f7a4a',3.5,true);for(const k of carts)dot(k.x,k.z,'#f6f4ee',2.6,true);for(const k of aiCarts)if(k.g.visible)dot(k.x,k.z,'#f6f4ee',2.6,true);if(police&&police.g.visible)dot(police.x,police.z,'#1d4ea0',4.5,true);for(const o of MP.dogs.values())dot(o.x,o.z,'#ffd27a',3.5,true);for(const w of walkers)dot(w.p.g.position.x,w.p.g.position.z,'#ffffff',2.2);
   mctx.save();mctx.translate(W/2,Hh/2);mctx.rotate(-dog.heading);mctx.fillStyle='#ffd27a';mctx.strokeStyle='#1c2626';mctx.lineWidth=1.2;
   mctx.beginPath();mctx.moveTo(0,6);mctx.lineTo(4,-4);mctx.lineTo(-4,-4);mctx.closePath();mctx.fill();mctx.stroke();mctx.restore()}
 
@@ -1339,7 +1358,7 @@ const busy=()=>(dog.autoRun>0&&dog.autoRun>=2.1)||dog.action==='dig'||dog.action
 function standUp(){if(dog.posture!=='stand'){dog.posture='stand';if(dog.napping){dog.napping=false;toast('You wake up and stretch.')}}}
 function dropBall(){dropItem();if(dog.holding){dog.holding=false;ball.state='ground';ball.x=dog.x;ball.z=dog.z;ball.y=groundAt(dog.x,dog.z)+0.11;ball.t=0}}
 function people(){return [auntie,fisher,kid].concat(walkers.map(w=>w.p),villagers)}
-function doBark(){if(dog.napping)return;dog.barkT=0.45;sfx.bark();S.happy=Math.min(100,S.happy+1);say(DOGTALK,'Woof! Woof!',1.2);dropBall();
+function doBark(){if(dog.napping)return;MP.barkN++;dog.barkT=0.45;sfx.bark();S.happy=Math.min(100,S.happy+1);say(DOGTALK,'Woof! Woof!',1.2);dropBall();
   for(const p of people()){if(!p.g.visible)continue;const d=Math.hypot(p.g.position.x-dog.x,p.g.position.z-dog.z);if(d<8)say(p,p===fisher?'Shh! You\'ll scare the fish.':p===auntie?pick(['細聲啲啦! Quiet, quiet!','Hungry again?']):pick(['Hello, boy!','Haha, what is it?','Woof to you too!']),2.4)}
   for(const c of crabs)if(Math.hypot(c.x-dog.x,c.z-dog.z)<7)c.flee=2;
   if(Math.hypot(cat.x-dog.x,cat.z-dog.z)<10&&cat.state==='sit'){cat.state='flee';cat.t=0;say(cat,'Hssss!',1.5)}
@@ -1542,7 +1561,7 @@ function updateWorld(dt){
   mkCat.visible=sn&&cat.state!=='roof'&&cd<60;mkCat.position.set(cat.x,cat.y+0.8,cat.z);
   mkBall.visible=sn&&ball.state==='ground';mkBall.position.set(ball.x,ball.y+0.5,ball.z);
   if(sn&&nearest&&Math.random()<dt*14){const u=Math.random()*Math.min(1,20/Math.max(nd,1));const px=lerp(dog.x,nearest.x,u),pz=lerp(dog.z,nearest.z,u);glow.emit(px+(Math.random()-0.5)*0.6,groundAt(px,pz)+0.25+Math.random()*0.3,pz+(Math.random()-0.5)*0.6,0,0.25,0,1.3,C_GOLD,0)}
-  if(dbUpd)dbUpd(dt);updateItems(dt);updateFeast(dt);updateBBQ(dt);updatePicnic(dt);updateWholesome(dt);dust.update(dt);glow.update(dt)}
+  if(dbUpd)dbUpd(dt);mpUpd(dt);updateItems(dt);updateFeast(dt);updateBBQ(dt);updatePicnic(dt);updateWholesome(dt);dust.update(dt);glow.update(dt)}
 
 // ================= Camera =================
 function updateCamera(dt){
@@ -1593,7 +1612,7 @@ function snapshot(){return {level:WD.level,x:dog.x,z:dog.z,heading:dog.heading,h
 function start(){S.started=true;$('#start').hidden=true;sfx.init();renderTodos();
   if(WD.level==='db'){toast('Welcome to Discovery Bay, '+S.name+'! No cars here: people zip around in golf carts.');toast('Find a parked golf cart and hop on, or catch the bus back to Ha Yeung.')}
   else{toast('Welcome home, '+S.name+'! Your food bowl is by the red front door.');toast('Uphill west is the bus stop on Clear Water Bay Road. The beach is about 500 m north-east. Check the map.')}}
-function destroy(){dead=true;cancelAnimationFrame(rafId);AC.abort();clearTimeout(arcTimer);
+function destroy(){dead=true;try{if(MP.unsub)MP.unsub()}catch(e){}cancelAnimationFrame(rafId);AC.abort();clearTimeout(arcTimer);
   scene.traverse(o=>{if(o.geometry)o.geometry.dispose();const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms){for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}m.dispose()}});
   renderer.renderLists.dispose();renderer.dispose();try{renderer.forceContextLoss()}catch(e){}renderer.domElement.remove();
   $('#bubbles').textContent='';$('#pops').textContent='';toastEl.classList.remove('show');$('#chaseHud').hidden=true;$('#vignette').classList.remove('on');bigEl.hidden=true;
