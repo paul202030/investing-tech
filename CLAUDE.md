@@ -105,3 +105,6 @@ The building block skills (10 analysis skills) are also available as a standalon
 
 ## API Documentation
 The `daloopa-docs` MCP server provides direct access to Daloopa's knowledgebase for API usage questions, data coverage, and platform features. A local copy of the docs is also in `daloopa_docs/`. See also: https://docs.daloopa.com
+
+## Games
+- `games/ha-yeung-dog-days/` is a browser game, unrelated to the financial toolkit. Before working on it, read its `CLAUDE.md` and `HANDOFF.md`; append (never rewrite) a new `HANDOFF.md` entry at the end of each session.
