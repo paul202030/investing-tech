@@ -157,3 +157,13 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 - Publishing version 16 was blocked by the session's auto-mode safety check ("Create Unsafe Agents"). Likely cause: one player's creation text (a talking character's personality) was fed into other players' Claude requests (prompt-injection path).
 - Fixes: (1) `genReview()`: a second quick-tier `sample.json` call on the creator's account reviews a creation's text (name, zh, label, line, hello, talk) and blocks harmful content or AI-instruction text before it's spawned or saved. (2) Chatting with player-made characters no longer sends their `talk` text; the prompt only gets the label, quoted as a name tag. The client-side review can be bypassed by a tampered client, so (2) is the real guard; review is a filter, not a security boundary.
 - Only a load smoke test was run (no errors).
+
+## #9 · 2026-10-14 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+### What changed (game version 17; capabilities room, sample, user, db)
+- **Coins 🪙** (`S.coins`, start 100, +10 per to-do, +reward/5 per mission). Signed-in players' wallets are saved in db `data/users/<user.id()>/wallet` (`walletUpd()`, outer `W`, saved 2 s after a change); otherwise per session. Coins are game money only: they can't be bought or cashed out.
+- **Game booths:** creation spec `booth: {game: coin|dice|cups|wheel, stake: 10-100}`. Context "Play" opens `#boothBox`; `crypto.getRandomValues` decides. Payouts: coin 50% × 1.9; dice 5–6 × 2.8; cups 1/3 × 2.8; wheel 0× (55%) / 1.5× (25%) / 2× (15%) / 5× (5%). When a player loses, half the stake goes to `creations/{id}.bank`; the owner (`owner` = creator's user id) collects it at their booth. The ledger is trust-based (a tampered client can cheat); fine for friends.
+- **People:** spec `person: {shirt, pants, hair, skin, hat?}` builds a `makePerson` villager; `giver: {theme}` makes them hand out missions ("Mission" context).
+- **Missions rewritten:** Auntie or any giver; 2–4 steps; new types race (own countdown), collect (n pickups), gift, swim, nap, ride (cart or player vehicle), fly (altitude, only if a flying creation exists). A giver's label goes into the prompt only as a quoted name tag.
+- New to-do `booth` (23 total).
+- Test `tests/run26_coins_booths_givers.js` (fake Claude/db/user) passed: wallet load, booth with owner, 5 plays, giver person, 2-step mission. Chat, flying, etc. from #7 are still not run end to end.
