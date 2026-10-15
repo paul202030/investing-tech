@@ -193,3 +193,9 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
   - Fixed: the sign-in tip read `sessionStorage` outside try/catch, which threw where storage is blocked.
   - `data/discovery-bay-north/` is deleted (still in git history); `pipeline/places_dbn.py` stays but is unused.
   - Brief test `tests/run30_db_combined.js`: one DB level loads, north to-do fires, bus goes to HY. Screenshots looked right (Headland Drive towers, North Plaza by the water). The page is about 4.2 MB.
+
+## 14. Discovery Bay Marina, game version 22
+- Widened the DB map east/south to include the Marina Club basin: `BOX=-760,1160,-1720,540` (same CENTER/origin and other env as #13; Overture extracts and big.npy already covered it). 829 buildings, world.json 3.5 MB; bus terminus unchanged.
+- `pipeline/marina_xform.py`: re-embeds the world, and in dbDecor (SITE) scans the basin (x 745..1140, z 125..520, water deeper than 1.2 m) for up to 70 moored yachts on pontoon fingers, with walkways clipped to each row of boats; the yachts bob while the dog is within ~320 m. Map pin "Marina" at (950,320).
+- Brief test `tests/run31_marina.js`: DB loads, 70 yachts, bus to HY works, no errors; screenshots checked.
+- Discussed, not built: back-mounted bomb launcher for buddy matches (plan in chat: a launch is one shared event; each player's own game decides its hits).
