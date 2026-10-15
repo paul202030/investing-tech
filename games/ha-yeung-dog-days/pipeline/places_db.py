@@ -1,9 +1,9 @@
-import json,pickle,math,random,numpy as np
+import json,pickle,math,random,os,numpy as np
 from shapely.geometry import Polygon,Point,LineString
 from shapely.ops import nearest_points
 from shapely import wkb
 random.seed(7)
-W=json.load(open('db/world_base.json'));s=pickle.load(open('db/state.pkl','rb'))
+IN=os.environ.get('IN','db');W=json.load(open(IN+'/world_base.json'));s=pickle.load(open(IN+'/state.pkl','rb'))
 H,gx,gz,inSea=s['H'],s['gx'],s['gz'],s['inSea']
 X0,Z0,C=W['x0'],W['z0'],W['cell'];LAT0,LON0=22.29589,114.0165;MX=111320*math.cos(math.radians(LAT0));MY=110540
 P=lambda lat,lon:((lon-LON0)*MX,-(lat-LAT0)*MY)
@@ -43,7 +43,7 @@ for a,b in zip(ex,ex[1:]):
   if best is None or d<best[0]:best=(d,a,b)
 home=min([i for i,b in enumerate(B) if 40<b['a']<400 and i!=shop],key=lambda i:polys[i].distance(Point(*rest)))
 # Tai Pak Beach: largest beach polygon
-LAND=json.load(open('db/land.json'));bc=None;ba=0
+LAND=json.load(open(IN+'/land.json'));bc=None;ba=0
 for x in LAND:
   if x['class']=='beach':
     g=wkb.loads(bytes.fromhex(x['geometry']));c=g.centroid;a=g.area
@@ -71,4 +71,4 @@ W['places']=dict(home=home,door=rest,bed=[rest[0]+1.6,rest[1]],bowl=[rest[0]-1.2
   beach=bc,kid=kid,fisher=fi,fisherLook=tosea(fi),digs=digs,perch=perch,carts=carts,noHome=True)
 W['level']='db';W['name']='Discovery Bay';W['nameZh']='愉景灣';W['busDest']='愉景灣 DISCOVERY BAY';W['otherDest']='下洋 HA YEUNG';W['signText']='愉景茶餐廳  DB CAFÉ';W['roadName']='Discovery Bay Road'
 print(json.dumps(W['places'])[:900])
-json.dump(W,open('db/world.json','w'),separators=(',',':'))
+json.dump(W,open(IN+'/world.json','w'),separators=(',',':'))

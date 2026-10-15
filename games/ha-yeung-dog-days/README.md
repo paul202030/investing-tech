@@ -11,8 +11,7 @@ A browser game where you live a day as a golden retriever in Ha Yeung village (C
 |---|---|
 | `index.html` | The whole game: one self-contained page (three.js r128 from cdnjs + the Ha Yeung world data embedded). Open it in a browser. |
 | `data/ha-yeung/world.json` | Processed world for Ha Yeung: 3 m height grid, land classes, roads, 495 buildings, game places. |
-| `data/discovery-bay/world.json` | Processed world for Discovery Bay, embedded in `index.html` as the second level (`#worldDataDB`); reach it by bus. |
-| `data/discovery-bay-north/world.json` | Third level: Discovery Bay North (North Plaza, Sam Pak Wan beach, Siena/Amalfi). Built with `pipeline/places_dbn.py`; reached by the DB bus. |
+| `data/discovery-bay/world.json` | Processed world for all of Discovery Bay (south, Headland Drive/Parkridge, north), embedded in `index.html` as the second level (`#worldDataDB`); reach it by bus. |
 | `data/*/overture-*.json` | Raw Overture Maps extracts (roads, buildings, land, land use) for each area. Water polygons and elevation tiles are left out (large, re-fetchable). |
 | `pipeline/ov.py` | Pulls Overture Maps data for a bounding box straight from the public S3 bucket (HTTP range reads, no DuckDB extensions needed). |
 | `pipeline/build_data.py` | Builds a world: samples elevation tiles, canopy/coast corrections, flattens roads, levels house platforms, writes `world_base.json`. |
