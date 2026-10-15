@@ -1057,6 +1057,35 @@ function genThing(spec,x,z,by,id,owner,bank){let g,top=0.5,pp=null;const hx=v=>n
   const f={g,gen:spec,by,id,owner:owner||null,bank:+bank||0,headY:top+0.3,x,z,tag:{g,headY:top+0.4},tagT:Math.random(),folk:true,ph:Math.random()*6,patCool:0,
     arms:pp?pp.arms:[{rotation:{x:0}},{rotation:{x:0}}],legs:pp?pp.legs:[],phase:0,human:!!pp};
   g.position.set(x,groundAt(x,z),z);g.rotation.y=Math.random()*6.28;softColliders.push([x,z,pp?0.35:Math.min(1.6,Math.max(0.5,top*0.4))]);genFolk.push(f);GEN.items.push(f);return f}
+// jumping out of a flying machine: free fall, then a paraglider
+let canopy=null;
+function makeCanopy(){const g=new THREE.Group();const cols=[0xe8473c,0xf2c230,0x2d6fa5,0xf4f4f0,0x2f8f5a];
+  for(let i=0;i<9;i++){const a=(i-4)*0.17;const m=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.12,1.5),new THREE.MeshLambertMaterial({color:cols[i%5],side:THREE.DoubleSide}));m.position.set(Math.sin(a)*3.4,Math.cos(a)*3.4-3.4+4.2,0);m.rotation.z=-a;m.castShadow=true;g.add(m)}
+  const lm=new THREE.LineBasicMaterial({color:0x444444});for(const sx of [-2.9,-1.2,1.2,2.9]){const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute([0,0.6,0,sx,4.1-Math.abs(sx)*0.18,0],3));g.add(new THREE.Line(geo,lm))}
+  g.visible=false;scene.add(g);return g}
+function jumpOut(){const k=dog.cart;if(!k)return;dog.cart=null;k.drop=true;dog.para={y:dog.y,vy:3,open:false,f:Math.min(12,k.v*0.5)};dog.heading=k.h;dog.posture='stand';D.root.rotation.set(0,dog.heading,0);
+  arcade('ジャンプ!','JUMP!','run');sfx.arcadeStart();toast(mobile?'Tap Open chute to open your paraglider!':'Press X or Space to open your paraglider!')}
+function openChute(){const P=dog.para;if(!P||P.open)return;P.open=true;if(!canopy)canopy=makeCanopy();canopy.visible=true;sfx.ding();popScore('PARAGLIDER!')}
+function updatePara(dt){const P=dog.para;let th=0,st=0;
+  if(keys.w||keys.arrowup)th+=1;if(keys.s||keys.arrowdown)th-=1;if(keys.d||keys.arrowright)st+=1;if(keys.a||keys.arrowleft)st-=1;if(joy.mag>0.12){th=-joy.y;st=joy.x}
+  dog.heading-=st*(P.open?1.1:1.8)*dt;
+  if(P.open){P.vy=lerp(P.vy,th<-0.05?-6:-2.6,Math.min(1,dt*2.5));P.f=lerp(P.f,th>0.05?11:th<-0.05?4:7,Math.min(1,dt*1.5))}
+  else{P.vy=Math.max(-38,P.vy-9.8*dt);P.f=lerp(P.f,2+Math.max(0,th)*4,Math.min(1,dt*0.6))}
+  let nx=dog.x+Math.sin(dog.heading)*P.f*dt,nz=dog.z+Math.cos(dog.heading)*P.f*dt;const b=bldAt(nx,nz);if(b&&P.y<b.top+0.3)[nx,nz]=pushOutB(nx,nz,0.6);
+  dog.x=clamp(nx,X0+20,X1-20);dog.z=clamp(nz,Z0+20,Z1-20);P.y+=P.vy*dt;const water=gridH(dog.x,dog.z)<-0.5,gnd=water?-0.45:groundAt(dog.x,dog.z);
+  if(P.y<=gnd){dog.para=null;if(canopy)canopy.visible=false;dog.y=gnd;cam.dist=dog.camDist||5.5;
+    if(water){toast('Splash! A soft sea landing.');sfx.splash()}
+    else if(P.open&&P.vy>-7){arcade('ナイス!','NICE LANDING','win');sfx.win();S.points+=100;popScore('+100');complete('para')}
+    else{arcade('ドーン!','BONK!','lose');sfx.bonk();say(DOGTALK,'@#%! …I\'m okay!',2);S.happy=Math.max(0,S.happy-10);for(let i=0;i<12;i++)glow.emit(dog.x,dog.y+1,dog.z,(Math.random()-0.5)*3,2+Math.random()*2,(Math.random()-0.5)*3,0.8,C_GOLD,6)}
+    D.root.position.set(dog.x,dog.y,dog.z);return}
+  dog.y=P.y;dog.speed=Math.min(P.f,5);dog.posture=P.open?'sit':'stand';dog.swimming=false;if(dog.barkT>0)dog.barkT-=dt;
+  D.root.position.set(dog.x,dog.y,dog.z);D.root.rotation.set(P.open?0:-0.35,dog.heading,P.open?-st*0.2:Math.sin(S.t*6)*0.15);
+  cam.dist+=(Math.max(dog.camDist||5.5,P.open?9:7)-cam.dist)*Math.min(1,dt*2);
+  if(canopy&&P.open){canopy.position.set(dog.x,dog.y+0.4,dog.z);canopy.rotation.set(0,dog.heading+Math.PI/2,st*0.25)}}
+// an empty plane glides down by itself and parks where it lands
+function dropUpd(k,dt){k.alt=Math.max(0,k.alt-(k.alt>1?3.5:1)*dt);k.v=Math.max(0,k.v-(k.alt>0.2?1:6)*dt);const fx=Math.sin(k.h),fz=Math.cos(k.h);const nx=k.x+fx*k.v*dt,nz=k.z+fz*k.v*dt;const b=bldAt(nx+fx*1.5,nz+fz*1.5);
+  if(b&&Math.max(groundAt(nx,nz),0)+k.alt<b.top+0.5)k.v=0;else{k.x=clamp(nx,X0+20,X1-20);k.z=clamp(nz,Z0+20,Z1-20)}
+  k.y=Math.max(groundAt(k.x,k.z),0)+k.alt;k.g.rotation.order='YXZ';k.g.position.set(k.x,k.y,k.z);k.g.rotation.set(0,k.h-Math.PI/2,k.alt>0.5?-0.12:0);if(k.alt<=0&&k.v<=0){k.drop=false;k.v=0}}
 function rideFly(dt){const k=dog.cart;let th=0,st=0;
   if(!S.leaving){if(keys.w||keys.arrowup)th+=1;if(keys.s||keys.arrowdown)th-=1;if(keys.d||keys.arrowright)st+=1;if(keys.a||keys.arrowleft)st-=1;if(joy.mag>0.12){th=-joy.y;st=joy.x}}
   const turbo=keys.shift||runLock||joy.mag>0.95,top=turbo?40:28;
@@ -1185,7 +1214,7 @@ function genPickup(it){const s=it.T.gen;S.points+=10;toast('✨ '+s.name+(s.zh?'
   else if(s.effect==='party'){arcade('パーティー!','PARTY!','clear');sfx.tada();hearts(20);for(const p of people())if(personNear(p,25))p.patT=3}
   else if(s.effect==='rain'){let n=0;for(const o of items)if(o.rainCopy)n++;for(let i=0;i<10&&n<40;i++,n++){const a=Math.random()*6.28,r=2+Math.random()*7;const x=dog.x+Math.cos(a)*r,z=dog.z+Math.sin(a)*r;if(bldAt(x,z))continue;
       const o=addItem(it.type,x,z);o.rainCopy=true;o.by=it.by;o.state='fly';o.vx=0;o.vz=0;o.vy=0;o.y+=10+Math.random()*6;o.g.position.y=o.y}toast('It\'s raining '+s.name.toLowerCase()+'!')}}
-function genUpd(dt){genListen();
+function genUpd(dt){genListen();for(const r of rides)if(r.drop&&dog.cart!==r)dropUpd(r,dt);
   if(dog.scaleT>0){dog.scaleT-=dt;if(dog.scaleT<=0)dog.scaleTo=1}const sc=D.root.scale.x,tg=dog.scaleTo||1;if(Math.abs(sc-tg)>0.001)D.root.scale.setScalar(lerp(sc,tg,Math.min(1,dt*3)));if(dog.zoomT>0)dog.zoomT-=dt;
   for(const it of GEN.items){if(it.state==='ground'&&it.T.gen){const m=it.T.gen.move;it.ph+=dt;
       if(m==='bounce')it.g.position.y=it.y+Math.abs(Math.sin(it.ph*3))*0.4;else if(m==='float')it.g.position.y=it.y+0.5+Math.sin(it.ph*1.5)*0.15;if(m==='spin')it.g.rotation.y+=dt*1.6;
@@ -1504,7 +1533,7 @@ function steal(){if(bbq.inRange)stealFromBBQ();else if(picnic.inRange)stealPicni
 // ================= State, HUD =================
 const S={coins:100,stash:[],breed:(BOOT&&BOOT.breed)||'golden',started:false,t:0,hour:7.5,day:1,hunger:80,energy:95,happy:70,points:0,name:'Mango',todos:{},fetchN:0,digN:0,found:[],swum:false,hungerHintT:0,energyHintT:0};
 const TODOS=[['greet','Greet someone getting off the bus'],['chaseBus','Chase the bus along '+WD.roadName],['fetch','Find Ming on the beach and play fetch (3 times)'],['dig','Dig up 3 buried treasures'],
-  ['swim','Swim in the sea, then shake off'],['cat','Chase the village cat'],['snack','Sit nicely at the store for dim sum'],['nap','Nap in your bed'],['stash','Carry 3 sticks, stones or shells home to your bed'],['bbq','Steal food from the BBQ and get away with it'],['pats','Sit next to people for pats (3 people)'],['slipper','Find Granny Chan\'s lost slipper'],['sunset','Sit by the sea at sunset'],['minibus','Sit at the Ha Yeung bus stop to hail a green minibus'],['picnic','Snatch a snack from the beach picnic'],['bus','Ride the bus between Ha Yeung and Discovery Bay'],['cart','Drive a golf cart in Discovery Bay'],['police','Outrun the police in a golf cart'],['create','Create something new for the village (✨ Create)'],['chat','Have a chat with Granny Chan'],['mission','Finish a mission for Auntie Wong'],['fly','Fly something a player created'],['booth','Try your luck at a player\'s game booth']];
+  ['swim','Swim in the sea, then shake off'],['cat','Chase the village cat'],['snack','Sit nicely at the store for dim sum'],['nap','Nap in your bed'],['stash','Carry 3 sticks, stones or shells home to your bed'],['bbq','Steal food from the BBQ and get away with it'],['pats','Sit next to people for pats (3 people)'],['slipper','Find Granny Chan\'s lost slipper'],['sunset','Sit by the sea at sunset'],['minibus','Sit at the Ha Yeung bus stop to hail a green minibus'],['picnic','Snatch a snack from the beach picnic'],['bus','Ride the bus between Ha Yeung and Discovery Bay'],['cart','Drive a golf cart in Discovery Bay'],['police','Outrun the police in a golf cart'],['create','Create something new for the village (✨ Create)'],['chat','Have a chat with Granny Chan'],['mission','Finish a mission for Auntie Wong'],['fly','Fly something a player created'],['booth','Try your luck at a player\'s game booth'],['para','Jump out of a flying machine and paraglide down']];
 function renderTodos(){const ul=$('#todoList');ul.innerHTML='';let n=0;
   for(const [k,label] of TODOS){const li=document.createElement('li');let t=label;if(k==='fetch'&&!S.todos[k])t+=' · '+S.fetchN+'/3';if(k==='dig'&&!S.todos[k])t+=' · '+S.digN+'/3';if(k==='pats'&&!S.todos[k])t+=' · '+(S.patsDay||0)+'/3';if(k==='stash'&&!S.todos[k])t+=' · '+(S.stashDay||0)+'/3';li.textContent=t;if(S.todos[k]){li.className='done';n++}ul.appendChild(li)}
   $('#todoCount').textContent=n+'/'+TODOS.length;$('#tCount').textContent=S.found.length;$('#tList').textContent=S.found.slice(-3).reverse().join(' · ')}
@@ -1564,7 +1593,7 @@ function closeBigMap(){bigEl.hidden=true}
 function travelTo(x,z){for(let r=0;r<40;r+=1.5){let found=null;for(let a=0;a<6.28;a+=0.4){const tx=clamp(x+Math.cos(a)*r,X0+8,X1-8),tz=clamp(z+Math.sin(a)*r,Z0+8,Z1-8);
     if(!bldAt(tx,tz)&&!softColliders.some(c=>Math.hypot(tx-c[0],tz-c[1])<c[2]+0.6)&&gridH(tx,tz)>0.2){found=[tx,tz];break}if(r===0)break}
     if(found){x=found[0];z=found[1];break}}
-  if(dog.cart){cam.dist=dog.camDist||cam.dist;dog.cart=null;D.root.rotation.x=0}if(bbq.state==='chase')endChase(false);standUp();dog.x=x;dog.z=z;dog.y=groundAt(x,z);dog.speed=0;dog.swimming=false;
+  if(dog.cart){cam.dist=dog.camDist||cam.dist;dog.cart=null;D.root.rotation.x=0}if(dog.para){dog.para=null;if(canopy)canopy.visible=false}if(bbq.state==='chase')endChase(false);standUp();dog.x=x;dog.z=z;dog.y=groundAt(x,z);dog.speed=0;dog.swimming=false;
   camera.position.set(x-Math.sin(dog.heading)*cam.dist,dog.y+3,z-Math.cos(dog.heading)*cam.dist);cam.yaw=dog.heading;
   let near=PLACES[0],nd=1e9;for(const p of PLACES){const d=Math.hypot(p[1]-x,p[2]-z);if(d<nd){nd=d;near=p}}
   toast(nd<60?'Zoom! You\'re by the '+near[0].toLowerCase().replace(' · ming','')+'.':'Zoom! New spot, new smells.');closeBigMap()}
@@ -1601,11 +1630,11 @@ $('#muteBtn').addEventListener('click',()=>{sfx.init();toggleMute()});
 
 // ================= Actions =================
 let runLock=false;function toggleRun(){runLock=!runLock;$('#aRun').classList.toggle('on',runLock);toast(runLock?'Running on. You build up to 7× walking speed and never get tired. Press R or tap Run to walk.':'Walking.')}
-const busy=()=>(dog.autoRun>0&&dog.autoRun>=2.1)||dog.action==='dig'||dog.action==='eat'||dog.action==='feast'||dog.action==='loot'||dog.action==='tart'||(dog.bellyT>0)||dog.shakeT>0||!!dog.cart||!!S.leaving;
+const busy=()=>(dog.autoRun>0&&dog.autoRun>=2.1)||dog.action==='dig'||dog.action==='eat'||dog.action==='feast'||dog.action==='loot'||dog.action==='tart'||(dog.bellyT>0)||dog.shakeT>0||!!dog.cart||!!dog.para||!!S.leaving;
 function standUp(){if(dog.posture!=='stand'){dog.posture='stand';if(dog.napping){dog.napping=false;toast('You wake up and stretch.')}}}
 function dropBall(){dropItem();if(dog.holding){dog.holding=false;ball.state='ground';ball.x=dog.x;ball.z=dog.z;ball.y=groundAt(dog.x,dog.z)+0.11;ball.t=0}}
 function people(){return [auntie,fisher,kid].concat(walkers.map(w=>w.p),villagers)}
-function doBark(){if(dog.napping)return;MP.barkN++;misEv('bark');dog.barkT=0.45;sfx.bark();S.happy=Math.min(100,S.happy+1);say(DOGTALK,'Woof! Woof!',1.2);dropBall();
+function doBark(){if(dog.para&&!dog.para.open){openChute();return}if(dog.napping)return;MP.barkN++;misEv('bark');dog.barkT=0.45;sfx.bark();S.happy=Math.min(100,S.happy+1);say(DOGTALK,'Woof! Woof!',1.2);dropBall();
   for(const p of people()){if(!p.g.visible)continue;const d=Math.hypot(p.g.position.x-dog.x,p.g.position.z-dog.z);if(d<8)say(p,p===fisher?'Shh! You\'ll scare the fish.':p===auntie?pick(['細聲啲啦! Quiet, quiet!','Hungry again?']):pick(['Hello, boy!','Haha, what is it?','Woof to you too!']),2.4)}
   for(const c of crabs)if(Math.hypot(c.x-dog.x,c.z-dog.z)<7)c.flee=2;
   if(Math.hypot(cat.x-dog.x,cat.z-dog.z)<10&&cat.state==='sit'){cat.state='flee';cat.t=0;say(cat,'Hssss!',1.5)}
@@ -1624,6 +1653,7 @@ function finishDig(){const fx=dog.x+Math.sin(dog.heading)*0.5,fz=dog.z+Math.cos(
 // context action: board the bus, hop on or off a golf cart
 function nearCart(){if(dog.cart||!S.started||busy()||dog.swimming)return null;let b=null,bd=2.8;for(const k of carts.concat(rides)){const d=Math.hypot(k.x-dog.x,k.z-dog.z);if(d<bd){bd=d;b=k}}return b}
 function ctxAction(){if(!S.started||S.leaving)return null;
+  if(dog.cart&&dog.cart.fly&&dog.cart.alt>4)return {l:'Jump!',f:jumpOut};if(dog.para)return dog.para.open?null:{l:'Open chute',f:openChute};
   if(dog.cart)return Math.abs(dog.cart.v)<1.2&&!(dog.cart.alt>0.6)&&gridH(dog.cart.x,dog.cart.z)>0.2?{l:'Hop off',f:hopOff}:null;
   if(bus.state==='dwell'&&!dog.swimming&&!busy()&&Math.min(Math.hypot(bus.x-dog.x,bus.z-dog.z),Math.hypot(PL.stop[0]-dog.x,PL.stop[1]-dog.z))<10)return {l:'Board bus',f:boardBus};
   const k=nearCart();if(k)return {l:'Hop on',f:()=>hopOn(k)};if(dog.swimming||busy())return null;
@@ -1677,7 +1707,7 @@ function applyTime(){const h=S.hour;let i=0;while(i<SKY.length-2&&h>SKY[i+1][0])
 
 function vehicleCheck(v){if(Math.abs(v.along)<v.half+0.3&&Math.abs(v.lat)<1.5){const lx=v.fz,lz=-v.fx;const s=v.lat>=0?1:-1;dog.x=v.x+lx*s*1.9+v.fx*v.along;dog.z=v.z+lz*s*1.9+v.fz*v.along;S.happy=Math.max(0,S.happy-3);if(dog.cart){dog.cart.x=dog.x;dog.cart.z=dog.z;dog.cart.v=0}}}
 
-function updateDog(dt){if(dog.cart){rideCart(dt);return}dog.sitT=dog.posture==='sit'&&!dog.action?(dog.sitT||0)+dt:0;
+function updateDog(dt){if(dog.cart){rideCart(dt);return}if(dog.para){updatePara(dt);return}dog.sitT=dog.posture==='sit'&&!dog.action?(dog.sitT||0)+dt:0;
   let ix=0,iy=0;
   if(S.started&&!S.leaving){if(keys.w||keys.arrowup)iy+=1;if(keys.s||keys.arrowdown)iy-=1;if(keys.d||keys.arrowright)ix+=1;if(keys.a||keys.arrowleft)ix-=1;if(joy.mag>0.12){ix=joy.x;iy=-joy.y}}
   const mag=Math.min(1,Math.hypot(ix,iy));const run=(keys.shift||runLock||joy.mag>0.88)&&!dog.sniff&&!dog.swimming;dog.runT=run&&mag>0.1?Math.min(2.2,(dog.runT||0)+dt):0;let target=0;
