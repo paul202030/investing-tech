@@ -1911,7 +1911,7 @@ function frame(now){if(lost||dead)return;const raw=(now-last)/1000;const dt=Math
 // ================= Boot =================
 function snapshot(){return {level:WD.level,x:dog.x,z:dog.z,heading:dog.heading,hour:S.hour,day:S.day,hunger:S.hunger,energy:S.energy,happy:S.happy,points:S.points,name:S.name,todos:S.todos,fetchN:S.fetchN,digN:S.digN,found:S.found,started:S.started,
   stash:S.stash,stashN:S.stashN,stashDay:S.stashDay,patsDay:S.patsDay,swum:S.swum,carryHint:S.carryHint,sniffHinted:S.sniffHinted,cartHint:S.cartHint,villageHint:S.villageHint,quality,runLock,breed:S.breed,coins:S.coins}}
-function start(){S.started=true;$('#start').hidden=true;sfx.init();renderTodos();setTimeout(()=>{let seen=0;try{seen=sessionStorage.__dogTip;sessionStorage.__dogTip=1}catch(e){}if(!dead&&!SAMP&&!seen){toast('Tip: sign in to Claude to chat with villagers, get Auntie\'s missions and create things.')}},15000);
+function start(){S.started=true;$('#start').hidden=true;sfx.init();renderTodos();
   if(S.recover){toast('Graphics restored in a lighter mode. Carry on!');return}
   if(WD.level==='dbn'){toast('Welcome to Discovery Bay North, '+S.name+'! North Plaza is by the water and Sam Pak Wan beach is up the coast.');toast('Golf carts are parked around. The bus goes back to Discovery Bay.')}
   else if(WD.level==='db'){toast('Welcome to Discovery Bay, '+S.name+'! No cars here: people zip around in golf carts.');toast('Find a parked golf cart and hop on, or catch the bus back to Ha Yeung.')}
