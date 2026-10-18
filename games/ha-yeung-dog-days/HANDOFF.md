@@ -199,3 +199,8 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
 - `pipeline/marina_xform.py`: re-embeds the world, and in dbDecor (SITE) scans the basin (x 745..1140, z 125..520, water deeper than 1.2 m) for up to 70 moored yachts on pontoon fingers, with walkways clipped to each row of boats; the yachts bob while the dog is within ~320 m. Map pin "Marina" at (950,320).
 - Brief test `tests/run31_marina.js`: DB loads, 70 yachts, bus to HY works, no errors; screenshots checked.
 - Discussed, not built: back-mounted bomb launcher for buddy matches (plan in chat: a launch is one shared event; each player's own game decides its hits).
+
+## 15. No sign-in needed to play; creations baked in (game version 24)
+- Removed the 15 s "sign in to Claude" tip toast. Sign-in is now only mentioned when a player tries to create, chat or ask for a mission.
+- `pipeline/seed_creations_xform.py <dir>` bakes the creations made so far (32, read with ArtifactData `list` of `creations`, owner ids stripped; the one from the old DBN level shifted by (-150,-1300) into the combined DB map) into `#genSeed` and `data/creations_seed.json`. `genListen` spawns the seed once, then the live db snapshot adds anything new (ids dedupe). So signed-out players see and use every creation (rides, flyers, booths, mission givers).
+- Also published a second, capability-free copy (no db/sample/room/user, so claude.ai has nothing to ask a signed-out viewer to sign in for) as the "play" link; the create box there points to the main link for creating. Re-run the seed transform before republishing to pick up newer creations.
