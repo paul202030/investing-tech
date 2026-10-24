@@ -175,6 +175,19 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 .act.dim{opacity:.45}
 #game.dogvis canvas{filter:saturate(.45) sepia(.3) hue-rotate(-15deg) brightness(1.05)}
 @media (max-height:660px){.act{width:52px;height:52px;font-size:12px}#actions{grid-template-columns:repeat(2,52px);gap:8px}#aRun{width:112px;height:38px!important}#aCtx,#aSteal{width:128px;height:48px!important;font-size:18px}}
+#copFx{position:fixed;inset:0;pointer-events:none;z-index:6;opacity:0;transition:opacity .4s}
+#copFx.on{opacity:1;animation:copFl .5s steps(1) infinite}
+@keyframes copFl{0%{box-shadow:inset 26px 0 40px -10px rgba(255,30,40,.75),inset -26px 0 40px -10px rgba(30,90,255,.75)}50%{box-shadow:inset 26px 0 40px -10px rgba(30,90,255,.75),inset -26px 0 40px -10px rgba(255,30,40,.75)}}
+#copWipe{position:fixed;inset:0;pointer-events:none;z-index:40;display:none;align-items:center;justify-content:center;overflow:hidden}
+#copWipe.show{display:flex}
+#copWipe::before{content:"";position:absolute;inset:-20% -60%;background:repeating-linear-gradient(-55deg,#ffd400 0 46px,#14161c 46px 92px);animation:cwSweep 1.7s cubic-bezier(.7,0,.3,1) forwards}
+#copWipe.win::before{background:repeating-linear-gradient(-55deg,#2fd06a 0 46px,#0f2a1a 46px 92px)}
+#copWipe.lose::before{background:repeating-linear-gradient(-55deg,#ff3045 0 46px,#1a0b0e 46px 92px)}
+#copWipe .cwIn{position:relative;text-align:center;background:#0d0f14;color:#fff;padding:14px 26px;border:4px solid #fff;border-radius:6px;transform:skewX(-8deg);animation:cwPop 1.7s ease forwards;font-family:inherit}
+#copWipe .cwT{display:block;font-size:clamp(28px,7vw,64px);font-weight:900;letter-spacing:.04em;text-shadow:3px 3px 0 #ff3045,-3px -3px 0 #2a6cff}
+#copWipe .cwS{display:block;margin-top:4px;font-size:clamp(13px,2.6vw,20px);font-weight:700;color:#ffd400}
+@keyframes cwSweep{0%{transform:translateX(-110%)}35%,65%{transform:translateX(0)}100%{transform:translateX(110%)}}
+@keyframes cwPop{0%{opacity:0;transform:skewX(-8deg) scale(2.4)}22%{opacity:1;transform:skewX(-8deg) scale(1)}75%{opacity:1;transform:skewX(-8deg) scale(1.04)}100%{opacity:0;transform:skewX(-8deg) scale(.8)}}
 </style>
 
 <div id="game"></div>
@@ -230,7 +243,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 <div id="arcade" aria-hidden="true"><div class="lines"></div><div class="arcBox"><div class="arcTitle"></div><div class="arcSub"></div></div></div>
 <div id="pops" aria-hidden="true"></div>
 <div id="chaseHud" hidden><span class="chWho">UNCLE</span><span class="chBar"><i></i></span><span class="chDist">0.0M</span></div>
-<div id="vignette"></div>
+<div id="vignette"></div><div id="copFx"></div><div id="copWipe"><div class="cwIn"><b class="cwT"></b><span class="cwS"></span></div></div>
 <div id="bubbles"></div>
 <div id="fade"><div class="fadeCard"><div class="fadeBus" aria-hidden="true">🚌</div><p id="fadeMsg" role="status" aria-live="polite"></p></div></div>
 <div id="start">
@@ -863,11 +876,14 @@ function spawnPolice(){const P=police,k=dog.cart;const fx=Math.sin(k.h),fz=Math.
   for(let s=0;s<=CWL;s+=8){const q=cwAt(s);const d=Math.hypot(q.x-dog.x,q.z-dog.z);if(d<50||d>95)continue;const behind=-((q.x-dog.x)*fx+(q.z-dog.z)*fz)/d;if(behind>bs){bs=behind;best=q}}
   if(!best){const x=dog.x-fx*60,z=dog.z-fz*60;if(gridH(x,z)>0.5&&!bldAt(x,z))best={x,z};else{P.cool=15;return}}
   Object.assign(P,{state:'chase',t:0,x:best.x,z:best.z,h:Math.atan2(dog.x-best.x,dog.z-best.z),v:6,shoutT:0.6,sirenT:0,closeT:0});P.g.visible=true;
-  arcade('逃げろ!','POLICE!','run');shake();sfx.arcadeStart();toast('A police car spotted a DOG driving a golf cart! Lose them: get 90 m away or hold out for 30 seconds.')}
-function endPolice(won){const P=police;P.state='leave';P.t=0;
-  if(won){arcade('にげきった!','ESCAPED!!','win');sfx.win();shake();popScore('+500');S.points+=500;S.happy=Math.min(100,S.happy+15);complete('police');misEv('police');
+  P.stage=0;P.lastSec=-1;P.why='';P.farT=0;$('#copFx').classList.add('on');copWipe('警察追跡!','POLICE CHASE · SURVIVE 3:00 · NO CRASHES','');arcade('逃げろ!','POLICE!','run');shake();sfx.arcadeStart();toast('A police car spotted a DOG driving a golf cart! Survive 3 minutes: no crashes, no hopping off. Turbo with Shift!')}
+const CHASE_T=180;let wipeTimer=null;
+function copWipe(t,sub,kind){const el=$('#copWipe');el.querySelector('.cwT').textContent=t;el.querySelector('.cwS').textContent=sub;el.className='';void el.offsetWidth;el.className='show '+(kind||'');clearTimeout(wipeTimer);wipeTimer=setTimeout(()=>{el.className=''},1750)}
+function policeCrash(why){if(police&&police.state==='chase'){police.why=why;endPolice(false)}}
+function endPolice(won){const P=police;P.state='leave';P.t=0;$('#copFx').classList.remove('on');shake();
+  if(won){arcade('にげきった!','ESCAPED!!','win');sfx.win();shake();popScore('PERFECT RUN! +2000');S.points+=2000;S.happy=Math.min(100,S.happy+25);complete('police');copWipe('にげきった!!','3:00 PERFECT RUN · ESCAPED!','win');misEv('police');
     say(P,pick(['…He went that way. I think. Was it a he?','Lost him! Who\'s going to believe this report?']),3);toast('You lost the police! Somewhere an officer is writing a very confusing report.')}
-  else{arcade('つかまった…','BUSTED!','lose');sfx.lose();if(dog.cart)hopOff();hearts(10);S.happy=Math.min(100,S.happy+5);
+  else{const why=P.why;P.why='';arcade(why==='crash'?'クラッシュ!':'つかまった…',why==='crash'?'CRASHED! BUSTED!':why==='hop'?'OUT OF THE CART! BUSTED!':'BUSTED!','lose');copWipe('BUSTED!',why==='crash'?'You crashed. Drive perfectly!':why==='hop'?'Never leave the cart mid-chase!':'They caught up with you!','lose');sfx.lose();if(dog.cart)hopOff();hearts(10);S.happy=Math.min(100,S.happy+5);
     say(P,pick(['Good boy… but no licence, no driving, okay?','Paws where I can see them! …Aww, who\'s a good boy?']),3.5);toast('Busted! The officer parks the cart and gives you a pat. Try again… next time.')}}
 function moveCar(o,dt){const fx=Math.sin(o.h),fz=Math.cos(o.h);const n=Math.max(1,Math.ceil(Math.abs(o.v)*dt/0.5));let blocked=false;
   for(let i=0;i<n;i++){let nx=o.x+fx*o.v*dt/n,nz=o.z+fz*o.v*dt/n;const px=nx+fx*2.4,pz=nz+fz*2.4;if(gridH(px,pz)<0.3){blocked=true;o.v*=0.5;break}
@@ -877,13 +893,16 @@ function updatePolice(dt){const P=police;
   if(P.state==='off'){if(S.started&&dog.cart&&!dog.cart.fly&&Math.abs(dog.cart.v)>5){P.cool-=dt;if(P.cool<=0)spawnPolice()}return}
   P.t+=dt;const k=dog.cart;const dx=dog.x-P.x,dz=dog.z-P.z,d=Math.hypot(dx,dz);const fl=Math.floor(S.t*7)%2;P.rl.emissiveIntensity=fl?1.8:0.1;P.bl.emissiveIntensity=fl?0.1:1.8;
   if(P.state==='chase'){P.sirenT-=dt;if(P.sirenT<=0){P.sirenT=0.9;if(d<130)sfx.siren()}
-    if(!k){P.state='leave';P.t=0;say(P,pick(['…Okay. Good boy. Who left this cart running?','Dog out of the vehicle. Case closed!']),3);toast('The police give up: without the cart you\'re just a very good dog.');return}
+    if(!k){P.why='hop';endPolice(false);return;say(P,pick(['…Okay. Good boy. Who left this cart running?','Dog out of the vehicle. Case closed!']),3);toast('The police give up: without the cart you\'re just a very good dog.');return}
     const want=Math.atan2(dx,dz);P.h+=clamp(angDiff(P.h,want),-2.6*dt,2.6*dt);const aligned=Math.cos(angDiff(P.h,want));
-    const top=(d>45?19.5:18)*(0.55+0.45*Math.max(0,aligned));P.v+=clamp(top-P.v,-14*dt,(P.t<1.5?4:8)*dt);
+    const top=(d>45?23.5:21)*(0.55+0.45*Math.max(0,aligned));P.v+=clamp(top-P.v,-14*dt,(P.t<1.5?4:8)*dt);
     if(moveCar(P,dt)){P.h+=2.2*dt*(Math.sin(P.t*0.7)>0?1:-1)}
     P.shoutT-=dt;if(P.shoutT<=0){P.shoutT=3.2;const line=pick(POLICE_LINES);if(d>30)toast('📢 '+line);else say(P,line,2.6)}
     if(d<3.6)P.closeT+=dt;else P.closeT=Math.max(0,P.closeT-dt*0.5);
-    if(P.closeT>0.7&&P.t>2)endPolice(false);else if(d>90||P.t>30)endPolice(true)}
+    if(P.closeT>0.7&&P.t>2)endPolice(false);else if(P.t>CHASE_T)endPolice(true);
+    else{const st=Math.floor(P.t/30);if(st>(P.stage||0)){P.stage=st;S.points+=100;popScore('CLEAN '+st*30+'s +100');arcade('ステージ '+st+'!','STAGE '+st+' · '+Math.ceil((CHASE_T-P.t)/60*10)/10+' MIN LEFT','clear');sfx.ding()}
+      const left=CHASE_T-P.t;if(left<10&&Math.ceil(left)!==P.lastSec){P.lastSec=Math.ceil(left);sfx.beep();popScore(String(P.lastSec))}
+      if(d>120){P.farT=(P.farT||0)+dt;if(P.farT>3){P.farT=0;const bx=dog.x-Math.sin(k.h)*55,bz=dog.z-Math.cos(k.h)*55;if(gridH(bx,bz)>0.5&&!bldAt(bx,bz)){P.x=bx;P.z=bz;P.h=k.h;P.v=15;toast('📻 Backup unit right behind you!')}}}else P.farT=0}}
   else{P.v=Math.min(11,P.v+5*dt);const away=Math.atan2(P.x-dog.x,P.z-dog.z);if(P.t>2.5)P.h+=clamp(angDiff(P.h,away),-1.5*dt,1.5*dt);else P.v=Math.max(0,P.v-10*dt);moveCar(P,dt);
     if(P.t>9){P.state='off';P.g.visible=false;P.cool=80+Math.random()*100}}
   P.g.position.set(P.x,groundAt(P.x,P.z)+0.02,P.z);P.g.rotation.set(0,P.h-Math.PI/2,0)}
@@ -1573,7 +1592,7 @@ const LEASH={geo:new THREE.CylinderGeometry(0.03,0.03,1,6),mat:mat(0xff4fa3,{emi
 for(let i=0;i<11;i++)LEASH.P.push(new THREE.Vector3());
 for(let i=0;i<10;i++){const m=new THREE.Mesh(LEASH.geo,LEASH.mat);m.visible=false;m.frustumCulled=false;m.castShadow=false;scene.add(m);LEASH.segs.push(m)}
 const WALK={dragT:0,tugShown:false,talkT:3,treatT:10,wait:false,offT:0,reachT:0,zoomCool:0,sniffPrev:false,lastM:0};
-const npcDogs=[];
+const npcDogs=[];const RIDEV=new THREE.Vector3();
 const NPCD={barkCd:0,init:false,day:-1,pile:false,pileDay:-1,lastBark:-9,tip:false,mk:null,mkD:99};
 const FSLOT=[[1.6,0.8],[1.6,-0.8],[2.8,0],[3.6,0.5]],SIDES=[1,-1];
 const BLOB_G=new THREE.CircleGeometry(0.45,12);BLOB_G.rotateX(-Math.PI/2);
@@ -1820,6 +1839,12 @@ function updateNpcDogs(dt){
     if(o.barkT>0)o.barkT-=dt;if(o.bow>0)o.bow-=dt;
     if(o.echoT>0){o.echoT-=dt;if(o.echoT<=0)npcBark(o)}
     o.moved=0;o.sniffP=0;
+    if(o.kind==='friend'&&o.st==='follow'&&dog.cart&&dog.cart.g){const rk=dog.cart,si=S.pack.indexOf(o.id);if(si>=0&&si<2){
+      if(o.ride!==rk){o.ride=rk;o.hopT=0.6;o.hx=o.x;o.hz=o.z;o.hy=o.y;if(si===0){arcade('のって!','ALL ABOARD!','clear');sfx.beep()}say(o,breedInfo(o.breed).bark.split(' ')[0],1)}
+      rk.g.updateMatrixWorld();const se=rk.seat||{x:-0.15,y:0.78,z:0.22};rk.g.localToWorld(RIDEV.set(se.x-0.8,se.y+0.02,si?-0.3:0.3));
+      if(o.hopT>0){o.hopT-=dt;const t=1-Math.max(0,o.hopT)/0.6;o.x=o.hx+(RIDEV.x-o.hx)*t;o.z=o.hz+(RIDEV.z-o.hz)*t;o.y=o.hy+(RIDEV.y-o.hy)*t+Math.sin(t*Math.PI)*1.3}else{o.x=RIDEV.x;o.z=RIDEV.z;o.y=RIDEV.y}
+      o.g.visible=true;o.h=rk.h;o.sit=o.tSit=1;o.lie=o.tLie=0;o.tail&&0;poseDog2(o,0,dt);o.g.position.set(o.x,o.y,o.z);o.g.rotation.set(-(rk.pitch||0),o.h,0);continue}}
+    if(o.ride&&!dog.cart){o.ride=null;o.g.rotation.x=0;o.tSit=0;const gy=groundAt(o.x,o.z);if(o.y-gy>3){o.x=dog.x+1.2;o.z=dog.z+1.2}}
     if(o.kind==='friend')friendUpd(o,d,dt);else if(o.kind==='stray')strayUpd(o,d,dt);
     if(!o.g.visible)continue;
     const gy=groundAt(o.x,o.z);o.y=gy<-0.5?-0.45+Math.sin(S.t*2.2+o.wp)*0.04:gy;
@@ -2008,12 +2033,12 @@ function rideCart(dt){const k=dog.cart;if(k.fly)return rideFly(dt);let th=0,st=0
   k.h-=st*1.8/(1+Math.abs(k.v)/16)*dt*clamp(k.v/2.5,-1,1);
   const fx=Math.sin(k.h),fz=Math.cos(k.h);const n=Math.max(1,Math.ceil(Math.abs(k.v)*dt/0.5));let x=k.x,z=k.z;
   for(let i=0;i<n&&k.v!==0;i++){const dir=k.v<0?-1:1;let nx=x+fx*k.v*dt/n,nz=z+fz*k.v*dt/n;const pr=1.4+Math.abs(k.v)*0.05,px=nx+fx*pr*dir,pz=nz+fz*pr*dir;
-    if(gridH(px,pz)<0.3||CLS[cellIdx(px,pz)]===4){k.v=0;if(S.t-(k.waterT||-99)>6){k.waterT=S.t;toast('The cart stops at the water\'s edge. Golf carts can\'t swim!')}break}
+    if(gridH(px,pz)<0.3||CLS[cellIdx(px,pz)]===4){if(Math.abs(k.v)>6&&police&&police.state==='chase'){k.v=0;policeCrash('crash');break}k.v=0;if(S.t-(k.waterT||-99)>6){k.waterT=S.t;toast('The cart stops at the water\'s edge. Golf carts can\'t swim!')}break}
     if((gridH(px,pz)-gridH(x,z))/pr>0.9){k.v=0;if(S.t-(k.steepT||-99)>6){k.steepT=S.t;toast('Too steep for a golf cart.')}break}
     let hit=false;for(const o of [0.6,-0.6]){const qx=nx+fx*o,qz=nz+fz*o;const [rx,rz]=pushOutB(qx,qz,0.75);if(Math.hypot(rx-qx,rz-qz)>0.02){hit=true;nx+=rx-qx;nz+=rz-qz}}
     for(const s of softColliders){const ex=nx-s[0],ez=nz-s[1],L=Math.hypot(ex,ez);if(L<s[2]+1.0&&L>1e-4){nx=s[0]+ex/L*(s[2]+1.0);nz=s[1]+ez/L*(s[2]+1.0);k.v*=0.6}}
     for(const o of carts){if(o===k)continue;const ex=nx-o.x,ez=nz-o.z,L=Math.hypot(ex,ez);if(L<2.0&&L>1e-4){nx=o.x+ex/L*2.0;nz=o.z+ez/L*2.0;k.v*=0.6}}
-    x=nx;z=nz;if(hit){if(Math.abs(k.v)>1.8){sfx.bonk();say(DOGTALK,'Bonk!',0.9);S.happy=Math.max(0,S.happy-1);if(Math.abs(k.v)>9)shake()}k.v*=-0.25;break}}
+    x=nx;z=nz;if(hit){if(Math.abs(k.v)>4&&police&&police.state==='chase'){sfx.bonk();policeCrash('crash');break}if(Math.abs(k.v)>1.8){sfx.bonk();say(DOGTALK,'Bonk!',0.9);S.happy=Math.max(0,S.happy-1);if(Math.abs(k.v)>9)shake()}k.v*=-0.25;break}}
   k.x=clamp(x,X0+20,X1-20);k.z=clamp(z,Z0+20,Z1-20);k.dist+=Math.abs(k.v)*dt;if(k.dist>60)complete('cart');placeCart(k);
   cam.dist+=(Math.max(dog.camDist||5.5,7.5+Math.abs(k.v)*0.18)-cam.dist)*Math.min(1,dt*1.5);
   if(turbo&&Math.abs(k.v)>12&&Math.random()<dt*20)dust.emit(k.x-fx*1.3,k.y+0.3,k.z-fz*1.3,(Math.random()-0.5),0.8,(Math.random()-0.5),0.5,C_SAND,2);
@@ -2209,7 +2234,7 @@ function step(dt){
     if(dog.napping&&S.energy>=99.5&&!S.wakeMsg){S.wakeMsg=true;toast('Fully rested. Move to get up.')}else if(!dog.napping)S.wakeMsg=false}
   updateDog(dt);animateDog(dt);updateWorld(dt);applyTime();updateCamera(dt);updateBubbles(dt);
   toastT-=dt;if(toastT<=0){if(toastQ.length){toastEl.textContent=toastQ.shift();toastEl.classList.add('show');toastT=2.8}else toastEl.classList.remove('show')}
-  {const ch=bbq.state==='chase'?[bbq.uncle,'UNCLE',24]:picnic.state==='chase'?[picnic.chaser,'ATE',16]:police&&police.state==='chase'?[police,'POLICE '+Math.max(0,Math.ceil(30-police.t))+'s',90]:null;const el=$('#chaseHud');
+  {const ch=bbq.state==='chase'?[bbq.uncle,'UNCLE',24]:picnic.state==='chase'?[picnic.chaser,'ATE',16]:police&&police.state==='chase'?[police,'POLICE '+Math.floor(Math.max(0,CHASE_T-police.t)/60)+':'+String(Math.floor(Math.max(0,CHASE_T-police.t)%60)).padStart(2,'0'),60]:null;const el=$('#chaseHud');
    if(ch){el.hidden=false;const p=ch[0].g.position,dd=Math.hypot(p.x-dog.x,p.z-dog.z);el.querySelector('.chWho').textContent=ch[1];el.querySelector('.chDist').textContent=dd.toFixed(1)+'M';
      el.querySelector('.chBar i').style.width=clamp(dd/ch[2]*100,0,100)+'%';el.classList.toggle('danger',dd<3)}else el.hidden=true}
   hudT-=dt;if(hudT<=0){hudT=0.2;updateHud()}mapT-=dt;if(mapT<=0){mapT=0.2;drawMap()}
@@ -2240,7 +2265,7 @@ function destroy(){dead=true;$('#busBox').hidden=true;chBox.hidden=true;bBox.hid
   scene.traverse(o=>{if(o.geometry)o.geometry.dispose();const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms){for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}m.dispose()}});
   renderer.renderLists.dispose();renderer.dispose();try{renderer.forceContextLoss()}catch(e){}renderer.domElement.remove();
   $('#bubbles').textContent='';$('#pops').textContent='';toastEl.classList.remove('show');$('#chaseHud').hidden=true;$('#vignette').classList.remove('on');bigEl.hidden=true;
-  $('#aSteal').hidden=true;$('#aCtx').hidden=true;knob.style.transform='';$('#arcade').className='';$('#game').classList.remove('dogvis');sfx.set(0,0,48)}
+  $('#aSteal').hidden=true;$('#aCtx').hidden=true;knob.style.transform='';$('#arcade').className='';$('#game').classList.remove('dogvis');$('#copFx').classList.remove('on');$('#copWipe').className='';sfx.set(0,0,48)}
 function boot(data,arrive){data=data||{};if(data.name)S.name=data.name;
   for(const k of ['hour','day','hunger','energy','happy','points','todos','fetchN','digN','found','stash','stashN','stashDay','patsDay','swum','carryHint','sniffHinted','cartHint','villageHint','leash','walkM','leashHint','pals','pack','trust','trusted','breed','coins'])if(data[k]!==undefined&&data[k]!==null)S[k]=data[k];
   if(!BREED_IDS.includes(S.breed))S.breed='golden';S.leash=!!S.leash&&S.breed!=='lantau';S.walkM=+S.walkM||0;S.leashHint=!!S.leashHint;if(!Array.isArray(S.pack))S.pack=[];S.pack=S.pack.filter(x=>typeof x==='string').slice(0,2);for(const k of ['pals','trust','trusted'])if(!S[k]||typeof S[k]!=='object'||Array.isArray(S[k]))S[k]={};if(!Array.isArray(S.stash))S.stash=[];S.stash.forEach((type,i)=>{if(ITYPES[type])stashPlace(addItem(type,BED.x,BED.z),i+1)});

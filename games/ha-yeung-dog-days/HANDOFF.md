@@ -219,3 +219,10 @@ Features (all live): real terrain/roads/495 buildings; golden retriever (walk, 7
   - **Nose cam** (V / 👃): dog-height first person; second press adds a dog-colours filter.
 - **Not built (designed, specs summarised in the unit descriptions above):** slip-the-lead chase, road-wait treats, tag with friends, nap dreams, pack dinner bowl, siren howl-along chorus, pee-mail posts, rolling in seaweed/stink + sea wash, drinking (water bowl/fountain/salty sea), pigeons, feral cattle.
 - **Learned:** `tests/mkdebug.py` + `tests/smoke.js` are the reusable harness (any level/breed via `window.__BOOT`, prepended because the page has no `<head>`). Rose is in `people()`, so she also gives pats. Untested: pack carry-over on the bus, escort stopping 150 m from home.
+
+## #17 · 2026-10-24 · https://claude.ai/code/session_01KRGTnyo7iveA8i8hYTcjm4
+
+- `pipeline/police_rideon_xform.py`, test `tests/run38_police_rideon.js` (10 pass).
+- **Police chases are harder:** survive `CHASE_T`=180 s; distance no longer ends a chase. Hitting a wall above 4 m/s or driving into the water above 6 m/s during a chase = `policeCrash('crash')` → BUSTED; hopping off = BUSTED. Police top speed 21 (23 when >45 m away) vs turbo 22; if you get >120 m away for 3 s a "backup unit" respawns 55 m behind you. Stage banner + 100 every 30 s, beeping countdown in the last 10 s, HUD shows m:ss, win = +2000.
+- **Arcade FX:** `#copFx` flashing red/blue screen edges during a chase; `copWipe()` full-screen striped wipe with big text at the start (警察追跡!), win (green) and bust (red).
+- **Friends ride along:** pack friends (first 2 in `S.pack`) hop into the player's golf cart or flying creation with an arc jump (のって! ALL ABOARD!), sit behind the seat (`RIDEV`, cart-local offset -0.8 x, ±0.3 z), and hop out when the dog leaves. If the dog jumps out of a plane, they land next to the dog.
