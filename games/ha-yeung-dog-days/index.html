@@ -1608,8 +1608,8 @@ function updateWalkies(dt){
   if(S.leash){
     if(!ROSE.g.visible||d>8){spawnRose();d=Math.hypot(dog.x-rp.x,dog.z-rp.z)}
     const Lmax=3.0,ox=rp.x,oz=rp.z;let dragged=false;
-    if(d>Lmax){dragged=true;const k=Lmax/d;rp.x=dog.x-(dog.x-ox)*k;rp.z=dog.z-(dog.z-oz)*k}
-    else if(d>1.8){if(!dog.sniff){const st=Math.min(1.5*dt,d-1.8);rp.x+=(dog.x-ox)/d*st;rp.z+=(dog.z-oz)/d*st}else if(!WALK.sniffPrev)say(ROSE,'OK, sniff sniff…',1.8)}
+    if(d>Lmax){dragged=true;const k=Lmax/d;rp.x=dog.x-(dog.x-ox)*k;rp.z=dog.z-(dog.z-oz)*k;{const fh=Math.sin(dog.heading),ch=Math.cos(dog.heading),sd=WALK.side||(WALK.side=1),vx=ch*sd-fh*0.6,vz=-fh*sd-ch*0.6,vl=Math.hypot(vx,vz),sx=dog.x+vx/vl*Lmax*0.95,sz=dog.z+vz/vl*Lmax*0.95,w=Math.min(1,dt*1.5);rp.x+=(sx-rp.x)*w;rp.z+=(sz-rp.z)*w}}
+    else if(!dog.sniff&&d>1.2){/*ROSE_SIDE*/const fh=Math.sin(dog.heading),ch=Math.cos(dog.heading),sd=WALK.side||(WALK.side=1),tx=dog.x+ch*1.7*sd-fh*0.6,tz=dog.z-fh*1.7*sd-ch*0.6,td=Math.hypot(tx-ox,tz-oz);if(td>0.25){const st=Math.min((td>3?2.6:1.5)*dt,td);rp.x+=(tx-ox)/td*st;rp.z+=(tz-oz)/td*st}}else if(d>1.8){if(!dog.sniff){const st=Math.min(1.5*dt,d-1.8);rp.x+=(dog.x-ox)/d*st;rp.z+=(dog.z-oz)/d*st}else if(!WALK.sniffPrev)say(ROSE,'OK, sniff sniff…',1.8)}
     WALK.sniffPrev=dog.sniff;
     const pp=pushOutB(rp.x,rp.z,0.35);let px=pp[0],pz=pp[1];if(gridH(px,pz)<-0.3){px=ox;pz=oz}
     rp.x=px;rp.z=pz;rp.y=groundAt(px,pz);
