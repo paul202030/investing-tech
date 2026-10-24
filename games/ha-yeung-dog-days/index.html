@@ -164,7 +164,7 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
 #missionHud[hidden]{display:none!important}
 #missionHud .mT{font-family:'Press Start 2P',monospace;font-size:11px;color:#ffe53b}
 #missionHud .mS{font-family:var(--body);font-size:14px;margin-top:4px}
-.breeds{display:flex;gap:14px;font-weight:400;color:var(--ink);font-size:14px}
+.breeds{display:flex;flex-wrap:wrap;gap:6px 14px;font-weight:400;color:var(--ink);font-size:14px}
 #boothBox{z-index:6}
 #boothBtns,#busBtns{display:flex;gap:8px;flex-wrap:wrap}
 #busBox{z-index:6}
@@ -234,8 +234,8 @@ body{background:var(--night);color:var(--ink);font-family:var(--body);overflow:h
   <div class="startCard">
     <div class="eyebrow">下洋 · 狗仔日記</div>
     <h1>Ha Yeung Dog Days</h1>
-    <p>You're a golden retriever living in Ha Yeung village, Clear Water Bay. The hills, roads and houses follow real map data: run downhill along Ha Yeung Road to the sea, or up to the bus stop on Clear Water Bay Road. Hail a green minibus, dig for treasure, collect sticks and stones, raid a neighbour's BBQ and a beach picnic, chase the bus, play fetch, beg for dim sum, and nap in the sun. When the bus pulls in, hop on and ride to Discovery Bay, where the residents drive golf carts. So can you.</p>
-    <div class="nameRow">Breed<div class="breeds"><label><input type="radio" name="breed" value="golden" checked> Golden retriever</label><label><input type="radio" name="breed" value="bichon"> Bichon frise</label></div></div>
+    <p>You're a dog living in Ha Yeung village, Clear Water Bay: a golden retriever, a fluffy bichon, a scruffy border terrier with a pink collar, or a free Lantau street dog (唐狗). The hills, roads and houses follow real map data: run downhill along Ha Yeung Road to the sea, or up to the bus stop on Clear Water Bay Road. Hail a green minibus, dig for treasure, collect sticks and stones, raid a neighbour's BBQ and a beach picnic, chase the bus, play fetch, beg for dim sum, and nap in the sun. When the bus pulls in, hop on and ride to Discovery Bay, where the residents drive golf carts. So can you.</p>
+    <div class="nameRow">Breed<div class="breeds"><label><input type="radio" name="breed" value="golden" checked> Golden retriever</label><label><input type="radio" name="breed" value="bichon"> Bichon frise</label><label><input type="radio" name="breed" value="terrier"> Border terrier 🎀</label><label><input type="radio" name="breed" value="lantau"> Lantau street dog 唐狗</label></div></div>
     <label class="nameRow" for="dogName">Your dog's name
       <input id="dogName" maxlength="14" value="Mango" autocomplete="off">
     </label>
@@ -289,7 +289,7 @@ const sfx=(function(){let shapeCurve=null,ac=null,master=null,noise=null,waveG=n
   function burst(f,q,dur,vol,delay){if(!ac)return;const t=ac.currentTime+(delay||0);const s=ac.createBufferSource();s.buffer=noise;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f;bp.Q.value=q;const g=ac.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);s.connect(bp).connect(g).connect(master);s.start(t,Math.random());s.stop(t+dur+0.05)}
   function tone(type,f0,f1,dur,vol,delay){if(!ac)return;const t=ac.currentTime+(delay||0);const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);const g=ac.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+0.012);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g).connect(master);o.start(t);o.stop(t+dur+0.05)}
   return {init,
-    bark(){if(!ac)return;const base=290*(0.92+Math.random()*0.16);
+    bark(p){if(!ac)return;const base=290*(p||1)*(0.92+Math.random()*0.16);
       if(!shapeCurve){shapeCurve=new Float32Array(1024);for(let i=0;i<1024;i++){const x=i/511.5-1;shapeCurve[i]=Math.tanh(x*3.5)}}
       const n=Math.random()<0.35?1:2;
       for(let k=0;k<n;k++){const t=ac.currentTime+k*(0.2+Math.random()*0.05),m=k?0.92:1,f0=base*m;
@@ -447,6 +447,8 @@ Object.assign(sun.shadow.camera,{left:-38,right:38,top:38,bottom:-38,near:1,far:
 
 const mat=(c,o)=>new THREE.MeshLambertMaterial(Object.assign({color:c},o||{}));
 const SPH=new THREE.SphereGeometry(1,14,10);
+const DLEG=[new THREE.CylinderGeometry(0.068,0.056,0.3,8),new THREE.CylinderGeometry(0.09,0.056,0.3,8),new THREE.CylinderGeometry(0.05,0.044,0.24,8)],COLLAR_G=new THREE.TorusGeometry(0.165,0.026,6,16),DOGMATS=new Map();
+function dogMat(c,basic){const key=(basic?'b':'l')+c;let m=DOGMATS.get(key);if(!m){m=basic?new THREE.MeshBasicMaterial({color:c}):mat(c);m.userData.shared=true;DOGMATS.set(key,m)}return m}
 function sph(m,sx,sy,sz,x,y,z,p){const o=new THREE.Mesh(SPH,m);o.scale.set(sx,sy,sz);o.position.set(x,y,z);o.castShadow=true;if(p)p.add(o);return o}
 function box(m,w,h,d,x,y,z,p){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;if(p)p.add(o);return o}
 function cyl(m,rt,rb,h,x,y,z,p,seg){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg||8),m);o.position.set(x,y,z);o.castShadow=true;if(p)p.add(o);return o}
@@ -675,34 +677,42 @@ for(let k=0,n=0;k<4000&&n<5;k++){const x=PL.beach[0]-250+rnd()*500,z=PL.beach[1]
   g.position.set(x,0,z);g.rotation.y=rnd()*Math.PI;scene.add(g);boats.push({g,ph:rnd()*6});n++}
 
 // ================= Characters =================
-function makeDog(breed){const B=breed==='bichon',K=B?0.62:1;
-  const fur=mat(B?0xf6f2ea:0xd59a42),furL=mat(B?0xffffff:0xecc488),furF=mat(B?0xfbf7ef:0xf4d9a6),furD=mat(B?0xece5d8:0xb8792e),dark=mat(0x16100c),eyeM=mat(0x3b2414),pink=mat(0xd0706e),shine=new THREE.MeshBasicMaterial({color:0xffffff});
+const BREED_IDS=['golden','bichon','terrier','lantau'];
+const BREEDS={
+  golden:{k:1,c:[0xd59a42,0xecc488,0xf4d9a6,0xb8792e],nose:0.31,mouthZ:0.27,tailUp:0,pitch:1,coat:'feather',ears:'drop',collar:0,name:'golden retriever',sh:'golden',fb:'golden furball',bark:'Woof! Woof!',pat:['Look at that golden fur!'],pic:'Golden retriever! So fluffy!'},
+  bichon:{k:0.62,c:[0xf6f2ea,0xffffff,0xfbf7ef,0xece5d8],nose:0.19,mouthZ:0.17,tailUp:0.9,pitch:1.2,coat:'feather',ears:'drop',collar:0,name:'bichon frise',sh:'bichon',fb:'little cotton ball',bark:'Woof! Woof!',pat:['Like a little cloud!'],pic:'Ay, parang bulak! Like cotton!'},
+  terrier:{k:0.62,c:[0xa8784e,0xc99d6e,0x8a6a4c,0x3b3530],nose:0.25,mouthZ:0.21,tailUp:0.6,pitch:1.45,coat:'wire',ears:'fold',collar:0xff4fa3,name:'border terrier',sh:'terrier',fb:'scruffy little terrier',bark:'Yap! Yap!',pat:['Look at that little beard!','Scruffy otter face! 好可愛!'],pic:'Ay, a little terrier! Ang cute!'},
+  lantau:{k:0.84,c:[0xc68a4a,0xf0dcc0,0xe2b886,0x2a1f18],nose:0.29,mouthZ:0.25,tailUp:1.15,pitch:0.82,coat:'short',ears:'prick',collar:0,name:'Lantau street dog (唐狗)',sh:'唐狗',fb:'cheeky 唐狗',bark:'Wuff! Wuff!',pat:['唐狗 are the best dogs!','Good village dog! 好乖!'],pic:'Village doggy! Come, come!'}};
+function breedInfo(b){if(b===undefined)b=S.breed;return BREEDS[BREED_IDS.includes(b)?b:'golden']}
+function breedHello(){if(S.breed==='terrier')toast('Border terriers were bred to dig: you dig faster, smell treasure from further away and catch the cat quicker. Yap!');else if(S.breed==='lantau')toast('You are a free Lantau street dog (唐狗). That little nick in your ear means a kind vet looked after you.')}
+function makeDog(breed,o){o=o||{};const id=BREED_IDS.includes(breed)?breed:'golden',BR=BREEDS[id],B=id==='bichon',T=id==='terrier',L=id==='lantau',K=BR.k,C=o.c||BR.c,lite=!!o.lite,feather=BR.coat==='feather'&&!lite,M=o.mc?(c=>dogMat(c)):mat;
+  const fur=M(C[0]),furL=M(C[1]),furF=M(C[2]),furD=M(C[3]),dark=M(0x16100c),eyeM=M(0x3b2414),pink=M(0xd0706e),shine=o.mc?dogMat(0xffffff,true):new THREE.MeshBasicMaterial({color:0xffffff});
   const root=new THREE.Group();root.rotation.order='YXZ';const hip=new THREE.Group();hip.position.set(0,0.56*K,-0.36*K);hip.scale.setScalar(K);root.add(hip);
   sph(fur,0.24,0.25,0.25,0,0.04,0,hip);                 // rump
-  sph(fur,0.25,0.26,0.46,0,0.04,0.34,hip);              // barrel
+  sph(fur,L?0.21:0.25,L?0.23:0.26,L?0.44:0.46,0,0.04,0.34,hip);              // barrel
   sph(furL,0.23,0.27,0.22,0,-0.02,0.64,hip);            // deep chest
   sph(furF,0.17,0.21,0.12,0,-0.1,0.77,hip);             // feathered bib
-  for(let i=0;i<5;i++)sph(furF,0.075,0.07,0.1,i%2?0.06:-0.06,-0.21,0.12+i*0.12,hip); // belly fringe
-  for(const s of [1,-1])sph(furL,0.1,0.15,0.12,0.13*s,-0.07,-0.12,hip);             // fluffy breeches
+  if(feather)for(let i=0;i<5;i++)sph(furF,0.075,0.07,0.1,i%2?0.06:-0.06,-0.21,0.12+i*0.12,hip); // belly fringe
+  if(feather)for(const s of [1,-1])sph(furL,0.1,0.15,0.12,0.13*s,-0.07,-0.12,hip);             // fluffy breeches
   const neck=new THREE.Group();neck.position.set(0,0.12,0.7);hip.add(neck);
-  sph(fur,0.15,0.24,0.16,0,0.12,0,neck);sph(furL,0.145,0.2,0.13,0,0.03,0.07,neck);
+  sph(fur,0.15,0.24,0.16,0,0.12,0,neck);sph(furL,0.145,0.2,0.13,0,0.03,0.07,neck);const cc=o.collar!==undefined?o.collar:BR.collar;if(cc){const cm=new THREE.Mesh(COLLAR_G,o.mc?dogMat(cc):mat(cc,{emissive:0x3a0d22}));cm.position.set(0,0.11,0.02);cm.rotation.x=Math.PI/2;cm.castShadow=true;neck.add(cm);sph(o.mc?dogMat(0xe0b040):mat(0xe0b040),0.03,0.035,0.012,0,0.06,0.205,neck)}const leashPt=new THREE.Object3D();leashPt.position.set(0,0.11,-0.17);neck.add(leashPt);
   const head=new THREE.Group();head.position.set(0,0.28,0.03);neck.add(head);
   sph(fur,0.15,0.14,0.16,0,0.04,-0.01,head);            // skull
   sph(fur,0.12,0.06,0.11,0,0.12,0,head);                // broad crown
-  if(B){sph(furL,0.08,0.07,0.09,0,-0.02,0.1,head);sph(furL,0.17,0.17,0.13,0,0.07,-0.03,head);sph(fur,0.3,0.3,0.5,0,0.05,0.32,hip)}else sph(furL,0.088,0.078,0.17,0,-0.02,0.15,head);         // muzzle (bichon: short, with a pom-pom head and fluffy body)
+  if(B){sph(furL,0.08,0.07,0.09,0,-0.02,0.1,head);sph(furL,0.17,0.17,0.13,0,0.07,-0.03,head);sph(fur,0.3,0.3,0.5,0,0.05,0.32,hip)}else if(T){sph(fur,0.165,0.12,0.15,0,0.05,-0.01,head);sph(furL,0.085,0.075,0.11,0,-0.03,0.12,head);sph(furD,0.06,0.05,0.05,0,-0.02,0.19,head);sph(furF,0.065,0.055,0.06,0,-0.09,0.15,head);for(const s of [1,-1]){sph(furF,0.035,0.03,0.035,0.05*s,-0.05,0.18,head);sph(furF,0.04,0.022,0.035,0.06*s,0.11,0.12,head)}sph(furD,0.235,0.17,0.43,0,0.14,0.3,hip);if(!lite)for(let i=0;i<3;i++)sph(furF,0.05,0.035,0.055,(i%2?0.07:-0.07),0.285,0.14+i*0.17,hip)}else if(L){sph(furL,0.072,0.066,0.155,0,-0.02,0.145,head);sph(furD,0.074,0.058,0.085,0,-0.012,0.215,head)}else sph(furL,0.088,0.078,0.17,0,-0.02,0.15,head);         // muzzle (bichon: short, with a pom-pom head and fluffy body)
   sph(furL,0.075,0.05,0.05,0,0.045,0.11,head);          // brow / stop
-  sph(dark,0.045,0.038,0.035,0,0.02,B?0.19:0.31,head);         // nose
-  const eyes=[];for(const s of [1,-1]){const e=new THREE.Group();e.position.set(0.068*s,0.068,0.125);head.add(e);sph(eyeM,0.026,0.028,0.02,0,0,0,e);const h=sph(shine,0.007,0.007,0.005,0.006*s,0.009,0.017,e);h.castShadow=false;eyes.push(e)}
-  const jaw=new THREE.Group();jaw.position.set(0,-0.065,0.07);head.add(jaw);sph(furL,0.072,0.03,0.13,0,-0.005,0.1,jaw);const tongue=sph(pink,0.045,0.012,0.085,0,0.012,0.16,jaw);
-  const ears=[];for(const s of [1,-1]){const e=new THREE.Group();e.position.set(0.115*s,0.09,-0.02);head.add(e);sph(furD,0.042,0.14,0.1,0.025*s,-0.1,0.02,e);sph(fur,0.036,0.07,0.085,0.03*s,-0.21,0.02,e);e.rotation.z=0.18*s;ears.push(e)}
+  sph(dark,0.045,0.038,0.035,0,0.02,BR.nose,head);         // nose
+  const eyes=[];for(const s of [1,-1]){const e=new THREE.Group();e.position.set(0.068*s,0.068,0.125);head.add(e);sph(eyeM,0.026,0.028,0.02,0,0,0,e);if(!lite){const h=sph(shine,0.007,0.007,0.005,0.006*s,0.009,0.017,e);h.castShadow=false}eyes.push(e)}
+  const jaw=new THREE.Group();jaw.position.set(0,-0.065,0.07);head.add(jaw);sph(furL,0.072,0.03,T?0.085:0.13,0,-0.005,T?0.06:0.1,jaw);const tongue=sph(pink,0.045,0.012,0.085,0,0.012,T?0.1:0.16,jaw);
+  const ears=[];for(const s of [1,-1]){const e=new THREE.Group();e.position.set(0.115*s,0.09,-0.02);head.add(e);if(T){const eb=new THREE.Group();eb.position.set(0.04*s,0.04,0.04);eb.rotation.set(-0.9,0.7*s,-0.2*s);e.add(eb);sph(furD,0.045,0.07,0.018,0,-0.055,0,eb)}else if(L){const eb=new THREE.Group();eb.position.set(0.005*s,0.02,0);eb.rotation.z=-0.15*s;e.add(eb);const em=sph(fur,0.045,0.11,0.028,0,0.09,0,eb);sph(furL,0.022,0.07,0.012,0,0.08,0.014,eb);if(s===1){em.scale.y=0.092;em.position.y=0.082}}else{sph(furD,0.042,0.14,0.1,0.025*s,-0.1,0.02,e);sph(fur,0.036,0.07,0.085,0.03*s,-0.21,0.02,e)}e.rotation.z=0.18*s;ears.push(e)}
   const legs=[];
   for(const [lx,lz,front] of [[0.13,0.62,true],[-0.13,0.62,true],[0.14,0.02,false],[-0.14,0.02,false]]){const up=new THREE.Group();up.position.set(lx,-0.04,lz);hip.add(up);
-    cyl(fur,front?0.068:0.09,0.056,0.3,0,-0.14,0,up);
-    if(front)sph(furF,0.035,0.13,0.05,0,-0.17,-0.06,up);else sph(furF,0.045,0.12,0.05,0,-0.12,-0.08,up); // leg feathering
-    const kn=new THREE.Group();kn.position.set(0,-0.28,0);up.add(kn);cyl(furL,0.05,0.044,0.24,0,-0.11,0,kn);sph(furL,0.062,0.042,0.08,0,-0.235,0.025,kn);legs.push({up,kn,front})}
+    {const lm=new THREE.Mesh(DLEG[front?0:1],fur);lm.position.y=-0.14;lm.castShadow=true;up.add(lm)}
+    if(feather){if(front)sph(furF,0.035,0.13,0.05,0,-0.17,-0.06,up);else sph(furF,0.045,0.12,0.05,0,-0.12,-0.08,up)} // leg feathering
+    const kn=new THREE.Group();kn.position.set(0,-0.28,0);up.add(kn);{const lm=new THREE.Mesh(DLEG[2],furL);lm.position.y=-0.11;lm.castShadow=true;kn.add(lm)}sph(furL,0.062,0.042,0.08,0,-0.235,0.025,kn);legs.push({up,kn,front})}
   const tail=new THREE.Group();tail.position.set(0,0.13,-0.22);hip.add(tail);let p=tail;const tsegs=[];
-  for(let i=0;i<5;i++){const g=new THREE.Group();g.position.y=i?0.1:0;g.rotation.x=i?0.08:0;p.add(g);sph(fur,0.042-i*0.004,0.07,0.042-i*0.004,0,0.05,0,g);sph(furF,0.032+i*0.006,0.068,0.05+i*0.012,0,0.05,-0.035-i*0.008,g);tsegs.push(g);p=g}
-  return {root,hip,neck,head,jaw,tongue,eyes,ears,legs,tail,tsegs,k:K,tailUp:B?0.9:0,breed:B?'bichon':'golden'}}
+  for(let i=0;i<5;i++){const g=new THREE.Group();g.position.y=i?(T?0.065:0.1):0;g.rotation.x=i?(L?0.38:0.08):0;p.add(g);if(T)sph(i>=3?furD:fur,0.05-i*0.007,0.06,0.05-i*0.007,0,0.04,0,g);else sph(fur,0.042-i*0.004,0.07,0.042-i*0.004,0,0.05,0,g);if(feather)sph(furF,0.032+i*0.006,0.068,0.05+i*0.012,0,0.05,-0.035-i*0.008,g);tsegs.push(g);p=g}
+  if(lite)root.traverse(m=>{if(m.isMesh)m.castShadow=false});return {root,hip,neck,head,jaw,tongue,eyes,ears,legs,tail,tsegs,k:K,tailUp:BR.tailUp,breed:id,leashPt,pitch:BR.pitch,mouthZ:BR.mouthZ,prick:L,mats:{fur,furL}}}
 function makePerson(o){
   const g=new THREE.Group();const skin=mat(o.skin||0xd9ad85),shirt=mat(o.shirt),pants=mat(o.pants),hair=mat(o.hair||0x1d1a18),shoe=mat(0x2a2a2a);const legs=[],arms=[];
   for(const s of [1,-1]){const l=new THREE.Group();l.position.set(0.1*s,0.85,0);g.add(l);cyl(pants,0.08,0.07,0.85,0,-0.42,0,l);box(shoe,0.12,0.08,0.22,0,-0.84,0.04,l);legs.push(l)}
@@ -949,13 +959,13 @@ function updateItems(dt){
       if(S.started&&!dog.cart&&!dog.item&&!dog.holding&&!dog.action&&!dog.napping&&!(dog.dropCool>0)&&Math.hypot(it.x-dog.x,it.z-dog.z)<0.8&&Math.abs(it.y-dog.y)<1.3){
         it.state='dog';dog.item=it;sfx.ding();if(it.T.gen){it.g.scale.setScalar(it.T.carryS);genPickup(it)}misEv('pick',it.type);
         if(!S.carryHint){S.carryHint=true;toast('You picked up '+it.T.label+'! Carry it to your bed for your stash, or to Ming on the beach. Bark or press G to drop it.')}else toast('Got '+it.T.label+'.')}}
-    else if(it.state==='grab'||it.state==='taken'){it.k=Math.min(1,(it.k||0)+dt/0.4);let to;if(it.state==='grab'){D.head.updateMatrixWorld();to=D.head.localToWorld(v3.set(0,-0.08,0.27)).clone()}else{it.holder.arms[1].updateMatrixWorld();to=it.holder.arms[1].localToWorld(v3.set(0,-0.7,0.08)).clone()}
+    else if(it.state==='grab'||it.state==='taken'){it.k=Math.min(1,(it.k||0)+dt/0.4);let to;if(it.state==='grab'){D.head.updateMatrixWorld();to=D.head.localToWorld(v3.set(0,-0.08,D.mouthZ)).clone()}else{it.holder.arms[1].updateMatrixWorld();to=it.holder.arms[1].localToWorld(v3.set(0,-0.7,0.08)).clone()}
       it.x=lerp(it.fx,to.x,it.k);it.z=lerp(it.fz,to.z,it.k);it.y=lerp(it.fy,to.y,it.k)+Math.sin(it.k*Math.PI)*0.7;it.g.position.set(it.x,it.y,it.z);it.g.rotation.y+=dt*10;
       if(it.k>=1)it.state=it.state==='grab'?'dog':'held'}
     else if(it.state==='held'){it.holder.arms[1].updateMatrixWorld();it.holder.arms[1].localToWorld(v3.set(0,-0.7,0.08));it.g.position.copy(v3);it.g.rotation.set(0,it.holder.g.rotation.y+Math.PI/2,0.4)}
     else if(it.state==='dog'){if(it.loot){const tgt=dog.action==='loot'?0.42:(bbq.state==='chase'||picnic.state==='chase')?0.82:1;it.g.scale.setScalar(lerp(it.g.scale.x,tgt,Math.min(1,dt*(dog.action==='loot'?1.2:0.25))));
         if(Math.random()<dt*(dog.action==='loot'?10:3)){D.head.updateMatrixWorld();D.head.localToWorld(v3.set(0,-0.1,0.3));dust.emit(v3.x,v3.y,v3.z,(Math.random()-0.5)*1.2,1+Math.random(),(Math.random()-0.5)*1.2,0.6,C_DIRT,9.8)}}
-      D.head.updateMatrixWorld();D.head.localToWorld(v3.set(0,-0.08,0.27));it.x=v3.x;it.y=v3.y;it.z=v3.z;it.g.position.copy(v3);D.head.getWorldQuaternion(_q);it.g.quaternion.copy(_q)}
+      D.head.updateMatrixWorld();D.head.localToWorld(v3.set(0,-0.08,D.mouthZ));it.x=v3.x;it.y=v3.y;it.z=v3.z;it.g.position.copy(v3);D.head.getWorldQuaternion(_q);it.g.quaternion.copy(_q)}
     else if(it.state==='fly'){it.vy-=9.8*dt;it.x+=it.vx*dt;it.y+=it.vy*dt;it.z+=it.vz*dt;const gh=groundAt(it.x,it.z);const surf=gh<0&&it.type!=='stone'?0.05:gh+it.T.r;
       it.g.rotation.x+=dt*9;if(it.vy<0&&it.y<=surf){it.y=surf;it.state='ground';it.g.rotation.set(0,it.yaw,0);if(gh<0)sfx.splash()}it.g.position.set(it.x,it.y,it.z)}}
   if(dog.item&&!dog.item.loot&&!dog.item.quest){const it=dog.item;
@@ -1020,15 +1030,15 @@ function mpUpd(dt){if(!ROOM)return;
   MP.sendT-=dt;if(MP.sendT<=0&&S.started){MP.sendT=0.1;try{const r=ROOM.presence({lv:WD.level,x:+dog.x.toFixed(2),z:+dog.z.toFixed(2),y:+dog.y.toFixed(2),h:+dog.heading.toFixed(3),s:dog.cart?'cart':dog.swimming?'swim':dog.posture,n:S.name,br:S.breed,b:MP.barkN});if(r&&r.catch)r.catch(()=>{})}catch(e){}}
   const seen=new Set();
   for(const p of MP.peers){if(p.isMe)continue;const q=p.presence||{};if(q.lv!==WD.level||!isFinite(q.x)||!isFinite(q.z))continue;seen.add(p.peer);
-    let o=MP.dogs.get(p.peer);if(!o){const D2=makeDog(q.br);scene.add(D2.root);o={D:D2,g:D2.root,headY:1.25,x:q.x,z:q.z,y:isFinite(q.y)?q.y:groundAt(q.x,q.z),h:q.h||0,ph:0,b:q.b,tagT:0,cart:null};MP.dogs.set(p.peer,o)}
+    let o=MP.dogs.get(p.peer);if(!o){const D2=makeDog(q.br,{lite:true,mc:true});scene.add(D2.root);o={D:D2,g:D2.root,headY:1.25,x:q.x,z:q.z,y:isFinite(q.y)?q.y:groundAt(q.x,q.z),h:q.h||0,ph:0,b:q.b,tagT:0,cart:null};MP.dogs.set(p.peer,o)}
     const px=o.x,pz=o.z,kk=Math.min(1,dt*10);o.x+=(q.x-o.x)*kk;o.z+=(q.z-o.z)*kk;o.y+=((isFinite(q.y)?q.y:groundAt(o.x,o.z))-o.y)*kk;o.h+=angDiff(o.h,q.h||0)*kk;
     const sp=Math.hypot(o.x-px,o.z-pz)/Math.max(dt,1e-3),st=q.s,sit=(st==='sit'||st==='cart')?1:0,lie=st==='lie'?1:0;o.ph+=dt*Math.min(sp*3,24);
     if(st==='cart'){if(!o.cart)o.cart=Object.assign(makeCart(0xf2f0e8),{v:0,pitch:0});o.cart.g.visible=true;o.cart.h=o.h;o.cart.x=o.x+Math.sin(o.h)*0.15+Math.cos(o.h)*0.22;o.cart.z=o.z+Math.cos(o.h)*0.15-Math.sin(o.h)*0.22;placeCart(o.cart)}else if(o.cart)o.cart.g.visible=false;
     const Dd=o.D,a=Math.sin(o.ph)*Math.min(1,sp/2.5)*0.6*(st==='cart'?0:1);Dd.root.position.set(o.x,o.y,o.z);Dd.root.rotation.set(0,o.h,0);
     Dd.legs.forEach((L,i)=>{const s=(i===0||i===3)?a:-a;if(L.front){L.up.rotation.x=s+sit*0.55-lie*1.45;L.kn.rotation.x=lie*0.1}else{L.up.rotation.x=s-sit*1.0-lie*1.3;L.kn.rotation.x=sit*1.7+lie*1.5}});
     Dd.hip.position.y=(0.56-sit*0.3-lie*0.36)*Dd.k;Dd.hip.rotation.x=-sit*0.55;Dd.neck.rotation.x=0.5+lie*0.7;Dd.head.rotation.x=-Dd.neck.rotation.x-Dd.hip.rotation.x+0.5+lie*0.15;
-    Dd.tail.rotation.x=lerp(-1.15,-1.55,Math.max(sit,lie));Dd.tail.rotation.z=Math.sin(S.t*12)*0.5;
-    o.tagT-=dt;if(o.tagT<=0){o.tagT=0.8;if(q.b!==o.b){o.b=q.b;say(o,'Woof! Woof!',1.2);if(Math.hypot(o.x-dog.x,o.z-dog.z)<30)sfx.bark()}else say(o,'🐾 '+String(q.n||'Friend').slice(0,14),1.0)}}
+    Dd.tail.rotation.x=lerp(-1.15,-1.55,Math.max(sit,lie))+Dd.tailUp;Dd.tail.rotation.z=Math.sin(S.t*12)*0.5;
+    o.tagT-=dt;if(o.tagT<=0){o.tagT=0.8;if(q.b!==o.b){o.b=q.b;say(o,breedInfo(o.D.breed).bark,1.2);if(Math.hypot(o.x-dog.x,o.z-dog.z)<30)sfx.bark(o.D.pitch)}else say(o,'🐾 '+String(q.n||'Friend').slice(0,14),1.0)}}
   for(const [id,o] of MP.dogs)if(!seen.has(id)){scene.remove(o.D.root);if(o.cart)scene.remove(o.cart.g);MP.dogs.delete(id)}}
 // ================= Player creations: ideas built by Claude on the player's own account, shared through db =================
 const GEN={ids:new Set(),items:[],unsub:null,busy:false,lastAt:0};
@@ -1119,7 +1129,7 @@ function closeChat(){chBox.hidden=true;chIn.blur()}
 async function sendChat(){const msg=gStr(chIn.value,140),pr=CH.who;if(!msg||!pr||CH.busy)return;if(!SAMP){$('#chatNote').textContent='Chatting needs Claude: open the game signed in to claude.ai.';return}
   chIn.value='';chatLine('me',msg);const log=CH.log.get(pr[1])||[];log.push(['me',msg]);CH.log.set(pr[1],log);CH.busy=true;$('#chatSend').disabled=true;$('#chatNote').textContent=pr[1]+' is thinking…';
   const hist=log.slice(-9,-1).map(([cl,t])=>(cl==='me'?'Dog: ':pr[1]+': ')+t).join('\n');const h=Math.floor(S.hour),m=Math.floor((S.hour-h)*60);
-  const prompt='You are '+pr[1]+', '+pr[3]+', in '+WD.name+', Hong Kong, inside a cute browser game. A dog called '+S.name+' (a '+(S.breed==='bichon'?'bichon frise':'golden retriever')+') is talking to you, and you understand dogs perfectly. It is '+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+'.'+
+  const prompt='You are '+pr[1]+', '+pr[3]+', in '+WD.name+', Hong Kong, inside a cute browser game. A dog called '+S.name+' (a '+(breedInfo().name)+') is talking to you, and you understand dogs perfectly. It is '+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+'.'+
     (dog.item?' The dog is carrying '+dog.item.T.label+'.':'')+' Stay in character, be warm and funny, 1-2 short sentences (max 160 characters). Keep it wholesome; no real brands or real people.\n'+(hist?'Conversation so far:\n'+hist+'\n':'')+'Dog: "'+msg.replace(/"/g,"'")+'"\n'+
     'Reply with ONLY JSON: {"reply": "...", "action": "none" | "treat" | "pat"} (treat = you give the dog a small snack, only now and then; pat = you pat the dog).';
   try{const r=await SAMP.json(prompt,{modelTier:'quick',cache:false});const reply=gStr(r&&r.reply,200)||'…';chatLine('them',reply);log.push(['them',reply]);if(log.length>16)log.splice(0,log.length-16);say(pr[0],reply,5);
@@ -1226,7 +1236,7 @@ function genUpd(dt){genListen();for(const r of rides)if(r.drop&&dog.cart!==r)dro
       if(m==='bounce')it.g.position.y=it.y+Math.abs(Math.sin(it.ph*3))*0.4;else if(m==='float')it.g.position.y=it.y+0.5+Math.sin(it.ph*1.5)*0.15;if(m==='spin')it.g.rotation.y+=dt*1.6;
       it.tagT-=dt;if(it.tagT<=0){it.tagT=1;if(Math.hypot(it.x-dog.x,it.z-dog.z)<16)say(it.tag,'✨ '+it.T.gen.name,1.1)}}
     else if((it.fly!==undefined||it.folk)&&dog.cart!==it){it.tagT-=dt;if(it.tagT<=0){it.tagT=1;const d=Math.hypot(it.x-dog.x,it.z-dog.z);if(d<16)say(it.tag,(it.folk&&d<5&&it.gen.hello&&!it.greeted?(it.greeted=true,it.gen.hello):(it.gen.booth?'🎲 '+it.gen.name+' · 🪙'+it.gen.booth.stake:it.gen.giver?'❗ '+it.gen.name:'✨ '+it.gen.name)),it.folk&&d<5?3:1.1)}if(it.folk&&it.gen.move!=='none'){it.ph+=dt;if(it.gen.move==='spin')it.g.rotation.y+=dt;else it.g.position.y=groundAt(it.x,it.z)+(it.gen.move==='float'?0.4+Math.sin(it.ph*1.5)*0.15:Math.abs(Math.sin(it.ph*3))*0.25)}}}}
-function genPrompt(idea){return 'You design ONE small object for a cute, low-poly 3D browser game where you play a golden retriever in '+WD.name+', Hong Kong. Everyone who plays will see it, so keep it friendly, a little funny and not too weird: no violence, nothing gross or scary, no real brands or real people.\n'+
+function genPrompt(idea){return 'You design ONE small object for a cute, low-poly 3D browser game where you play a '+breedInfo().name+' in '+WD.name+', Hong Kong. Everyone who plays will see it, so keep it friendly, a little funny and not too weird: no violence, nothing gross or scary, no real brands or real people.\n'+
   'Player\'s idea: """'+idea.slice(0,120).replace(/"/g,"'")+'"""\n'+
   'Reply with ONLY a JSON object:\n{"name": "short name, max 28 chars", "zh": "optional Chinese name, max 8 chars", "label": "how the game mentions it, e.g. a giant bouncing mango (max 40 chars)", '+
   '"line": "one cheerful sentence the dog thinks when picking it up, max 80 chars", "move": "none" | "bounce" | "float" | "spin", '+
@@ -1399,8 +1409,8 @@ const C_SMOKE=new THREE.Color(0xb9b6b0);
 function stealFromBBQ(){if(!bbq.inRange||busy())return;standUp();dropBall();
   const gp=bbq.steak.getWorldPosition(new THREE.Vector3());const it=addItem('tomahawk',gp.x,gp.z);it.loot=true;it.state='grab';it.k=0;it.fx=gp.x;it.fy=gp.y;it.fz=gp.z;it.g.scale.setScalar(1.15);dog.item=it;
   bbq.steak.visible=false;dog.heading=Math.atan2(gp.x-dog.x,gp.z-dog.z);dog.barkT=0.3;dog.autoRun=2.6;dog.autoFrom=[bbq.gx,bbq.gz];showRun();
-  bbq.state='chase';bbq.t=0;bbq.shoutT=0;bbq.inRange=false;sfx.bark();
-  say(bbq.uncle,'喂!! My tomahawk!! That was 800 dollars!',2.4);say(bbq.guests[0],'Hahaha! The golden got your food again!',2.6);say(bbq.guests[1],'Run, doggy, run!',2.2);
+  bbq.state='chase';bbq.t=0;bbq.shoutT=0;bbq.inRange=false;sfx.bark(D.pitch);
+  say(bbq.uncle,'喂!! My tomahawk!! That was 800 dollars!',2.4);say(bbq.guests[0],'Hahaha! The '+breedInfo().sh+' got your food again!',2.6);say(bbq.guests[1],'Run, doggy, run!',2.2);
   if(!runLock)toggleRun();toast('You grabbed the giant tomahawk steak!')}
 function endChase(caught){const it=dog.item;
   if(caught){if(it&&it.loot){it.state='taken';it.k=0;it.fx=it.x;it.fy=it.y;it.fz=it.z;it.holder=bbq.uncle;dog.item=null;bbq.carry=it}
@@ -1427,7 +1437,7 @@ function updateBBQ(dt){const H=S.hour,on=H>=10&&H<21.3;const U=bbq.uncle;bbq.coa
   else if(bbq.state==='chase'){bbq.t+=dt;const dd=Math.hypot(dog.x-p.x,dog.z-p.z);
     if(bbq.t>0.6){const sp=5.2;let nx=p.x+(dog.x-p.x)/dd*sp*dt,nz=p.z+(dog.z-p.z)/dd*sp*dt;[nx,nz]=pushOutB(nx,nz,0.35);p.x=nx;p.z=nz;p.y=groundAt(p.x,p.z);facePerson(U,dog.x,dog.z,dt);animPerson(U,2.2,dt);
       U.arms[1].rotation.x=-2.2+Math.sin(S.t*12)*0.6;if(Math.random()<dt*8)dust.emit(p.x,p.y+0.05,p.z,(Math.random()-0.5),0.6,(Math.random()-0.5),0.4,C_SAND,4)}
-    bbq.shoutT-=dt;if(bbq.shoutT<=0&&bbq.t>2){bbq.shoutT=2.4;say(U,pick(['喂! Stop that dog!','My sausages!!','Come back, you golden furball!','Somebody catch him!']),2)}
+    bbq.shoutT-=dt;if(bbq.shoutT<=0&&bbq.t>2){bbq.shoutT=2.4;say(U,pick(['喂! Stop that dog!','My sausages!!','Come back, you '+breedInfo().fb+'!','Somebody catch him!']),2)}
     if(dd<1.3&&bbq.t>0.8&&!(dog.autoRun>0))endChase(true);else if(dd>24||bbq.t>14)endChase(false)}
   else if(bbq.state==='return'){bbq.t+=dt;if(bbq.carry)U.arms[1].rotation.x=-2.9+Math.sin(S.t*6)*0.15;const dx=bbq.ux-p.x,dz=bbq.uz-p.z,dd=Math.hypot(dx,dz);
     if(dd<0.4){bbq.state='grill';if(bbq.carry){scene.remove(bbq.carry.g);items.splice(items.indexOf(bbq.carry),1);bbq.carry=null;bbq.steak.visible=true}}else{p.x+=dx/dd*1.6*dt;p.z+=dz/dd*1.6*dt;p.y=groundAt(p.x,p.z);facePerson(U,bbq.ux,bbq.uz,dt);animPerson(U,1.6,dt)}}}
@@ -1455,7 +1465,7 @@ const flies=[];
   flies.push({g,L,R:Rg,ax:p[0],az:p[1],x:p[0],z:p[1],y:groundAt(p[0],p[1])+1,ph:Math.random()*6,scare:0})}}
 function personNear(p,r){return p.g.visible&&Math.hypot(p.g.position.x-dog.x,p.g.position.z-dog.z)<r}
 function allPeople(){return people().concat(bbq.guests,bbq.state==='grill'?[bbq.uncle]:[],[granny],picnic.people.filter(p=>p!==picnic.chaser||picnic.state==='chill'))}
-const PAT=['Who\'s a good boy? You are!','Aww, so soft!','好乖呀! Such a good dog.','Hello, fluffy!','Look at that golden fur!'];
+const PAT=['Who\'s a good boy? You are!','Aww, so soft!','好乖呀! Such a good dog.','Hello, fluffy!'];
 const BELLY=['Belly rubs! Look at him wriggle!','Hahaha, you big softie!','Belly rub time!'];
 function updateWholesome(dt){const t=S.t,H=S.hour;
   for(const p of allPeople()){p.patCool=(p.patCool||0)-dt;if(p.patT>0){p.patT-=dt;facePerson(p,dog.x,dog.z,dt);p.arms[0].rotation.x=-1.0+Math.sin(t*12)*0.35}
@@ -1467,7 +1477,7 @@ function updateWholesome(dt){const t=S.t,H=S.hour;
     if(dog.posture!=='sit'&&dog.posture!=='lie')continue;
     if((p===auntie&&auntie.cool<=0&&H>6&&H<22)||(p===fisher&&fisher.cool<=0))continue; // they'd rather feed you
     const belly=dog.posture==='lie';p.patCool=25;p.patT=belly?2.6:1.8;if(belly){dog.bellyT=2.6;if(dog.napping){dog.napping=false}}
-    say(p,pick(belly?BELLY:PAT),2.6);hearts(belly?14:7);S.happy=Math.min(100,S.happy+(belly?18:10));S.points+=10;S.patsDay=(S.patsDay||0)+1;if(S.patsDay>=3)complete('pats');renderTodos();
+    say(p,pick(belly?BELLY:PAT.concat(breedInfo().pat)),2.6);hearts(belly?14:7);S.happy=Math.min(100,S.happy+(belly?18:10));S.points+=10;S.patsDay=(S.patsDay||0)+1;if(S.patsDay>=3)complete('pats');renderTodos();
     const w=walkers.find(w=>w.p===p);if(w)w.pause=Math.max(w.pause,p.patT+0.4)}
   // Granny Chan and her slipper
   if(S.started){const gd=Math.hypot(GR.x-dog.x,GR.z-dog.z);
@@ -1530,7 +1540,7 @@ function updatePicnic(dt){const H=S.hour,on=H>=9&&H<19.5;picnic.g.visible=on||pi
   picnic.inRange=on&&S.started&&picnic.state==='chill'&&picnic.cool<=0&&d<3.0&&!(dog.item&&dog.item.loot)&&!dog.swimming;
   if(picnic.inRange&&!picnic.hinted){picnic.hinted=true;toast('That fried chicken smells amazing… Tap Steal! or press T. Or just sit for pats.')}
   picnic.chatT-=dt;if(on&&picnic.state==='chill'&&picnic.chatT<=0&&d<30){picnic.chatT=5+Math.random()*5;
-    say(pick(picnic.people),d<6?pick(['Ay, ang cute! Come here, doggy!','Golden retriever! So fluffy!','Sit, sit! Good boy!']):pick(PIC_CHAT),2.6)}
+    say(pick(picnic.people),d<6?pick(['Ay, ang cute! Come here, doggy!',breedInfo().pic,'Sit, sit! Good boy!']):pick(PIC_CHAT),2.6)}
   picnic.people.forEach((p,i)=>{if(p===picnic.chaser&&picnic.state!=='chill')return;if(!(p.patT>0))facePerson(p,picnic.state==='chill'?(d<8?dog.x:picnic.x):dog.x,picnic.state==='chill'?(d<8?dog.z:picnic.z):dog.z,dt);
     if(i===3)p.arms[0].rotation.x=-2.4+Math.sin(S.t*0.7)*0.1;else if(!(p.patT>0))p.arms[0].rotation.x=Math.sin(S.t*2+i)*0.15});
   const c=picnic.chaser,p=c.g.position;
@@ -1550,7 +1560,7 @@ function showRun(){arcade('にげろ!','RUN!','run');shake();sfx.arcadeStart();p
 function steal(){if(bbq.inRange)stealFromBBQ();else if(picnic.inRange)stealPicnic()}
 
 // ================= State, HUD =================
-const S={coins:100,stash:[],breed:(BOOT&&BOOT.breed)||'golden',started:false,t:0,hour:7.5,day:1,hunger:80,energy:95,happy:70,points:0,name:'Mango',todos:{},fetchN:0,digN:0,found:[],swum:false,hungerHintT:0,energyHintT:0};
+const S={coins:100,stash:[],breed:BREED_IDS.includes(BOOT&&BOOT.breed)?BOOT.breed:'golden',started:false,t:0,hour:7.5,day:1,hunger:80,energy:95,happy:70,points:0,name:'Mango',todos:{},fetchN:0,digN:0,found:[],swum:false,hungerHintT:0,energyHintT:0};
 const TODOS=[['greet','Greet someone getting off the bus'],['chaseBus','Chase the bus along '+WD.roadName],['fetch','Find Ming on the beach and play fetch (3 times)'],['dig','Dig up 3 buried treasures'],
   ['swim','Swim in the sea, then shake off'],['cat','Chase the village cat'],['snack','Sit nicely at the store for dim sum'],['nap','Nap in your bed'],['stash','Carry 3 sticks, stones or shells home to your bed'],['bbq','Steal food from the BBQ and get away with it'],['pats','Sit next to people for pats (3 people)'],['slipper','Find Granny Chan\'s lost slipper'],['sunset','Sit by the sea at sunset'],['minibus','Sit at the Ha Yeung bus stop to hail a green minibus'],['picnic','Snatch a snack from the beach picnic'],['bus','Ride the bus between Ha Yeung and Discovery Bay'],['cart','Drive a golf cart in Discovery Bay'],['police','Outrun the police in a golf cart'],['create','Create something new for the village (✨ Create)'],['chat','Have a chat with Granny Chan'],['mission','Finish a mission for Auntie Wong'],['fly','Fly something a player created'],['booth','Try your luck at a player\'s game booth'],['para','Jump out of a flying machine and paraglide down'],['north','Walk or drive to Discovery Bay North']];
 function renderTodos(){const ul=$('#todoList');ul.innerHTML='';let n=0;
@@ -1562,7 +1572,7 @@ const toastQ=[];let toastT=0;const toastEl=$('#toast');
 function toast(m){if(toastQ[toastQ.length-1]===m)return;if(toastQ.length>3)toastQ.shift();toastQ.push(m)}
 const bubbleEls=[],bubbles=[];
 function say(obj,text,dur){let b=bubbles.find(b=>b.obj===obj);if(!b){let el=bubbleEls.pop();if(!el){el=document.createElement('div');el.className='bubble';$('#bubbles').appendChild(el)}b={el,obj};bubbles.push(b)}b.el.textContent=text;b.el.hidden=false;b.t=dur||2.8}
-const DOGTALK={headY:1.0,get g(){return D.root}};
+const DOGTALK={get headY(){return 0.45+0.55*D.k},get g(){return D.root}};
 const v3=new THREE.Vector3();
 function updateBubbles(dt){for(let i=bubbles.length-1;i>=0;i--){const b=bubbles[i];b.t-=dt;if(b.t<=0){b.el.hidden=true;bubbleEls.push(b.el);bubbles.splice(i,1);continue}
   b.obj.g.getWorldPosition(v3);v3.y+=b.obj.headY+0.15;const far=v3.distanceTo(camera.position)>40;v3.project(camera);
@@ -1653,7 +1663,7 @@ const busy=()=>(dog.autoRun>0&&dog.autoRun>=2.1)||dog.action==='dig'||dog.action
 function standUp(){if(dog.posture!=='stand'){dog.posture='stand';if(dog.napping){dog.napping=false;toast('You wake up and stretch.')}}}
 function dropBall(){dropItem();if(dog.holding){dog.holding=false;ball.state='ground';ball.x=dog.x;ball.z=dog.z;ball.y=groundAt(dog.x,dog.z)+0.11;ball.t=0}}
 function people(){return [auntie,fisher,kid].concat(walkers.map(w=>w.p),villagers)}
-function doBark(){if(dog.para&&!dog.para.open){openChute();return}if(dog.napping)return;MP.barkN++;misEv('bark');dog.barkT=0.45;sfx.bark();S.happy=Math.min(100,S.happy+1);say(DOGTALK,'Woof! Woof!',1.2);dropBall();
+function doBark(){if(dog.para&&!dog.para.open){openChute();return}if(dog.napping)return;MP.barkN++;misEv('bark');dog.barkT=0.45;sfx.bark(D.pitch);S.happy=Math.min(100,S.happy+1);say(DOGTALK,breedInfo().bark,1.2);dropBall();
   for(const p of people()){if(!p.g.visible)continue;const d=Math.hypot(p.g.position.x-dog.x,p.g.position.z-dog.z);if(d<8)say(p,p===fisher?'Shh! You\'ll scare the fish.':p===auntie?pick(['細聲啲啦! Quiet, quiet!','Hungry again?']):pick(['Hello, boy!','Haha, what is it?','Woof to you too!']),2.4)}
   for(const c of crabs)if(Math.hypot(c.x-dog.x,c.z-dog.z)<7)c.flee=2;
   if(Math.hypot(cat.x-dog.x,cat.z-dog.z)<10&&cat.state==='sit'){cat.state='flee';cat.t=0;say(cat,'Hssss!',1.5)}
@@ -1663,9 +1673,9 @@ function toggleSniff(){if(dog.cart)return;if(dog.swimming){toast('Hard to smell 
 function surface(x,z){const id=cellIdx(x,z);if(RMASK[id])return 'road';if(gridH(x,z)<-0.3)return 'water';if(bldAt(x,z))return 'road';return CLS[id]===3||CLS[id]===5?'sand':'grass'}
 function doDig(){if(busy()||dog.swimming)return;standUp();const s=surface(dog.x,dog.z);
   if(s==='road'){toast('Too hard to dig here. Try the sand or the grass.');return}if(s==='water'){toast('The hole keeps filling with water.');return}
-  dropBall();dog.action='dig';dog.actionT=1.6;dog.digSand=s==='sand'}
+  dropBall();dog.action='dig';dog.actionT=S.breed==='terrier'?1.05:1.6;dog.digSand=s==='sand'}
 function finishDig(){const fx=dog.x+Math.sin(dog.heading)*0.5,fz=dog.z+Math.cos(dog.heading)*0.5;addHole(fx,fz,dog.digSand);
-  const sp=digSpots.find(s=>!s.found&&Math.hypot(s.x-dog.x,s.z-dog.z)<2.2);
+  const sp=digSpots.find(s=>!s.found&&Math.hypot(s.x-dog.x,s.z-dog.z)<(S.breed==='terrier'?3:2.2));
   if(sp){sp.found=true;sp.s.visible=false;const item=ITEMS[itemIdx++%ITEMS.length];S.found.push(item);S.digN++;misEv('dig');S.points+=30;S.happy=Math.min(100,S.happy+12);sfx.ding();
     toast('You dug up '+item+'!');say(DOGTALK,'!!',1.2);if(S.digN>=3)complete('dig');renderTodos();setTimeout(respawnSpot,20000)}
   else toast(pick(['Just dirt. It smelled interesting though.','Nothing here but worms.','A very good hole, but no treasure.']))}
@@ -1733,7 +1743,7 @@ function updateDog(dt){if(dog.cart){rideCart(dt);return}if(dog.para){updatePara(
   if(S.started&&!S.leaving){if(keys.w||keys.arrowup)iy+=1;if(keys.s||keys.arrowdown)iy-=1;if(keys.d||keys.arrowright)ix+=1;if(keys.a||keys.arrowleft)ix-=1;if(joy.mag>0.12){ix=joy.x;iy=-joy.y}}
   const mag=Math.min(1,Math.hypot(ix,iy));const run=(keys.shift||runLock||joy.mag>0.88)&&!dog.sniff&&!dog.swimming;dog.runT=run&&mag>0.1?Math.min(2.2,(dog.runT||0)+dt):0;let target=0;
   if(mag>0.1&&!busy()){standUp();const sy=Math.sin(cam.yaw),cy=Math.cos(cam.yaw);const wx=sy*iy-cy*ix,wz=cy*iy+sy*ix;
-    dog.heading+=angDiff(dog.heading,Math.atan2(wx,wz))*Math.min(1,dt*9);target=(dog.swimming?1.8:run?2.5*lerp(1.8,7,dog.runT/2.2):dog.sniff?1.3:2.5)*Math.min(1,mag*1.25)*(dog.zoomT>0?1.8:1)}
+    dog.heading+=angDiff(dog.heading,Math.atan2(wx,wz))*Math.min(1,dt*9);target=(dog.swimming?(S.breed==='lantau'?2.3:1.8):run?2.5*lerp(1.8,7,dog.runT/2.2):dog.sniff?1.3:2.5)*Math.min(1,mag*1.25)*(dog.zoomT>0?1.8:1)}
   if(dog.autoRun>0){dog.autoRun-=dt;if(dog.autoRun<2.1){const aw=Math.atan2(dog.x-dog.autoFrom[0],dog.z-dog.autoFrom[1])+Math.sin(S.t*3)*0.35;dog.heading+=angDiff(dog.heading,aw)*Math.min(1,dt*7);target=5.8;cam.lastDrag=S.t-2}}
   dog.speed=lerp(dog.speed,target,Math.min(1,dt*6));
   if(dog.speed>0.01){const step=dog.speed*dt,fx=Math.sin(dog.heading),fz=Math.cos(dog.heading);const g0=groundAt(dog.x,dog.z);
@@ -1776,7 +1786,7 @@ function animateDog(dt){
   const pant=(run||S.energy<30||(S.hour>11&&S.hour<16&&spd>1))&&!dog.swimming&&!dog.napping;
   const chomp=dog.item&&dog.item.loot?Math.abs(Math.sin(S.t*11))*0.32:0;D.jaw.rotation.x=0.04+P.bark*0.55+(pant&&!chomp?0.18+Math.sin(S.t*14)*0.06:0)+(dog.holding||dog.item?0.15:0)+chomp;D.tongue.visible=pant||P.bark>0.2;
   dog.blinkT-=dt;const eyeS=dog.napping?0.12:(dog.blinkT<0.12?0.18:1);if(dog.blinkT<0)dog.blinkT=2+Math.random()*4;D.eyes.forEach(e=>e.scale.y=eyeS);
-  const flap=Math.min(1,spd/6);D.ears.forEach((e,i)=>{e.rotation.x=-flap*0.9+Math.sin(dog.phase*2)*0.15*flap;e.rotation.z=(i?-1:1)*(0.18+P.bark*0.2)});
+  const flap=Math.min(1,spd/6);D.ears.forEach((e,i)=>{if(D.prick){e.rotation.x=P.sniff*0.35+P.bark*0.25+Math.sin(dog.phase*2)*0.04*flap;e.rotation.z=(i?-1:1)*0.05}else{e.rotation.x=-flap*0.9+Math.sin(dog.phase*2)*0.15*flap;e.rotation.z=(i?-1:1)*(0.18+P.bark*0.2)}});
   D.tail.rotation.x=lerp(-1.15,-1.55,Math.max(P.sit,P.lie,P.swim))+D.tailUp;
   const wa=dog.napping?0.03:0.15+S.happy/100*0.65,ws=8+S.happy/100*10;D.tail.rotation.z=Math.sin(S.t*ws)*wa;D.tsegs.forEach((s,i)=>{if(i)s.rotation.z=Math.sin(S.t*ws-i*0.6)*wa*0.4})}
 
@@ -1834,7 +1844,7 @@ function updateWorld(dt){
   if(ball.state==='ground'){ball.t+=dt;if(gridH(ball.x,ball.z)<0)ball.y=0.08+Math.sin(t*2)*0.04;
     if(!dog.cart&&!dog.holding&&!dog.item&&!dog.action&&Math.hypot(ball.x-dog.x,ball.z-dog.z)<0.9&&Math.abs(ball.y-dog.y)<1.2){ball.state='dog';dog.holding=true;sfx.ding();if(kid.g.visible)say(kid,'Bring it back!',1.6)}
     if(ball.t>35&&kid.g.visible){ball.state='kid';kid.cool=2;say(kid,'Fine, I\'ll get it myself.',2)}}
-  if(ball.state==='dog'){D.head.updateMatrixWorld();D.head.localToWorld(v3.set(0,-0.07,0.27));ball.x=v3.x;ball.y=v3.y;ball.z=v3.z;
+  if(ball.state==='dog'){D.head.updateMatrixWorld();D.head.localToWorld(v3.set(0,-0.07,D.mouthZ));ball.x=v3.x;ball.y=v3.y;ball.z=v3.z;
     if(kid.g.visible&&Math.hypot(kid.g.position.x-dog.x,kid.g.position.z-dog.z)<2.3){ball.state='kid';dog.holding=false;kid.cool=1.4;S.fetchN++;S.points+=20;S.happy=Math.min(100,S.happy+12);say(kid,pick(['Good dog!','Again! Again!','You\'re so fast!']),1.8);if(S.fetchN>=3)complete('fetch');renderTodos()}}
   if(ball.state!=='kid')ball.mesh.position.set(ball.x,ball.y,ball.z);
   // cat
@@ -1843,7 +1853,7 @@ function updateWorld(dt){
   else if(cat.state==='flee'){const ax=cat.x-dog.x,az=cat.z-dog.z,an=Math.hypot(ax,az)||1;const hx=ax/an,hz=az/an;const wob=Math.sin(cat.t*2)*0.5;const rx=hx*Math.cos(wob)-hz*Math.sin(wob),rz=hx*Math.sin(wob)+hz*Math.cos(wob);
     let nx=cat.x+rx*5.6*dt,nz=cat.z+rz*5.6*dt;if(gridH(nx,nz)<0.3){nx=cat.x+rz*5.6*dt;nz=cat.z-rx*5.6*dt}[nx,nz]=pushOutB(nx,nz,0.3);cat.x=nx;cat.z=nz;cat.heading=Math.atan2(rx,rz);
     cat.legs.forEach((l,i)=>l.rotation.x=Math.sin(t*20+i*1.6)*0.8);
-    if(dog.speed>3.5&&cd<4.5){cat.chaseT+=dt;if(cat.chaseT>1.4)complete('cat')}
+    if(dog.speed>3.5&&cd<4.5){cat.chaseT+=dt;if(cat.chaseT>(S.breed==='terrier'?1.0:1.4))complete('cat')}
     if(cd<1.4||cat.t>5){let best=null,bd=1e9;for(const k of bldNear(cat.x,cat.z).concat(bldNear(cat.x+16,cat.z),bldNear(cat.x-16,cat.z),bldNear(cat.x,cat.z+16),bldNear(cat.x,cat.z-16))){const b=BL[k];const d=Math.hypot((b.bb[0]+b.bb[1])/2-cat.x,(b.bb[2]+b.bb[3])/2-cat.z);if(d<bd){bd=d;best=b}}
       cat.state='jump';cat.t=0;cat.from=[cat.x,cat.y,cat.z];cat.to=best?[(best.bb[0]+best.bb[1])/2,best.top,(best.bb[2]+best.bb[3])/2]:[cat.x,cat.y,cat.z];say(cat,'Hssss!',1.4)}}
   else if(cat.state==='jump'){const u=Math.min(1,cat.t/0.9);cat.x=lerp(cat.from[0],cat.to[0],u);cat.z=lerp(cat.from[2],cat.to[2],u);cat.y=lerp(cat.from[1],cat.to[1],u)+Math.sin(u*Math.PI)*3;if(u>=1){cat.state='roof';cat.t=0}}
@@ -1856,7 +1866,7 @@ function updateWorld(dt){
     const nx=c.x+Math.sin(c.dir)*sp*dt,nz=c.z+Math.cos(c.dir)*sp*dt;const h=gridH(nx,nz);if(h>-0.4&&h<2.5&&!bldAt(nx,nz)){c.x=nx;c.z=nz}else c.dir+=Math.PI;
     c.g.position.set(c.x,groundAt(c.x,c.z),c.z);c.g.rotation.y=c.dir+Math.PI/2}
   const sn=dog.sniff;let nearest=null,nd=1e9;
-  for(const s of digSpots){if(s.found){s.s.visible=false;continue}const d=Math.hypot(s.x-dog.x,s.z-dog.z);s.s.visible=sn&&d<60;if(s.s.visible){const k=1.2+Math.sin(t*4+s.x)*0.3;s.s.scale.set(k,k,1)}if(d<nd){nd=d;nearest=s}}
+  for(const s of digSpots){if(s.found){s.s.visible=false;continue}const d=Math.hypot(s.x-dog.x,s.z-dog.z);s.s.visible=sn&&d<(S.breed==='terrier'?80:60);if(s.s.visible){const k=1.2+Math.sin(t*4+s.x)*0.3;s.s.scale.set(k,k,1)}if(d<nd){nd=d;nearest=s}}
   [[auntie,auntie.cool<=0&&H>6&&H<22],[fisher,fisher.g.visible&&fisher.cool<=0]].forEach((f,i)=>{mkFood[i].visible=sn&&f[1];mkFood[i].position.set(f[0].g.position.x,f[0].g.position.y+2.3,f[0].g.position.z)});
   mkFood[2].visible=sn&&BOWL.full;mkFood[2].position.set(BOWL.x,bowlY+0.6,BOWL.z);
   mkCat.visible=sn&&cat.state!=='roof'&&cd<60;mkCat.position.set(cat.x,cat.y+0.8,cat.z);
@@ -1867,7 +1877,7 @@ function updateWorld(dt){
 // ================= Camera =================
 function updateCamera(dt){
   const csp=dog.cart?Math.abs(dog.cart.v)*1.3:dog.speed;if(csp>0.6&&S.t-cam.lastDrag>1.5)cam.yaw+=angDiff(cam.yaw,dog.heading)*dt*(0.7+csp*0.05);
-  const tgt=v3.set(dog.x,dog.y+0.75,dog.z);const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  const tgt=v3.set(dog.x,dog.y+0.75*(0.55+0.45*D.k),dog.z);const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
   let px=tgt.x-Math.sin(cam.yaw)*cam.dist*cp,pz=tgt.z-Math.cos(cam.yaw)*cam.dist*cp,py=tgt.y+cam.dist*sp;
   for(let u=0.1;u<=1;u+=0.05){const qx=lerp(tgt.x,px,u),qy=lerp(tgt.y,py,u),qz=lerp(tgt.z,pz,u);const b=bldAt(qx,qz);
     if(!b&&qy<gridH(qx,qz)+0.5){py=Math.max(py,gridH(px,pz)+1.2,gridH(qx,qz)+1.2);continue}if(b&&qy<b.top+0.3){const v=Math.max(0.35,u-0.08);px=lerp(tgt.x,px,v);py=lerp(tgt.y,py,v)+0.4*(1-v);pz=lerp(tgt.z,pz,v);break}}
@@ -1881,7 +1891,7 @@ function step(dt){
   if(S.started){const night=S.hour>=21.8||S.hour<5.2;const ts=dog.napping?14:night?10:1;const prev=S.hour;S.hour+=dt*ts/20;if(S.hour>=24){S.hour-=24;S.day++}
     if(prev<21.8&&S.hour>=21.8)toast('Night falls over '+WD.name+'. Time speeds up until sunrise.');
     if(prev<7&&S.hour>=7&&S.day>1){S.todos={};S.fetchN=0;S.digN=0;S.stashDay=0;S.patsDay=0;loseSlipper();S.swum=false;S.napHome=0;renderTodos();toast('Day '+S.day+' in '+WD.name+'. A new list of things to do!')}
-    S.hunger=clamp(S.hunger-dt*(dog.swimming?0.25:0.16),0,100);
+    S.hunger=clamp(S.hunger-dt*(dog.swimming?0.25:0.16)*(S.breed==='lantau'?0.8:1),0,100);
     const e=dog.napping?(Math.hypot(BED.x-dog.x,BED.z-dog.z)<1.4?7:3.5):dog.posture!=='stand'?0.4:dog.swimming?-0.45:dog.speed>3.6?0:dog.speed>0.3?-0.06:0.05;
     S.energy=clamp(S.energy+e*dt,0,100);S.happy=clamp(S.happy-dt*(0.07+(S.hunger<20?0.25:0)),0,100);
     S.hungerHintT-=dt;S.energyHintT-=dt;
@@ -1915,8 +1925,8 @@ function snapshot(){return {level:WD.level,x:dog.x,z:dog.z,heading:dog.heading,h
 function start(){S.started=true;$('#start').hidden=true;sfx.init();renderTodos();
   if(S.recover){toast('Graphics restored in a lighter mode. Carry on!');return}
   if(WD.level==='dbn'){toast('Welcome to Discovery Bay North, '+S.name+'! North Plaza is by the water and Sam Pak Wan beach is up the coast.');toast('Golf carts are parked around. The bus goes back to Discovery Bay.')}
-  else if(WD.level==='db'){toast('Welcome to Discovery Bay, '+S.name+'! No cars here: people zip around in golf carts.');toast('Find a parked golf cart and hop on, or catch the bus back to Ha Yeung.')}
-  else{toast('Welcome home, '+S.name+'! Your food bowl is by the red front door.');toast('Uphill west is the bus stop on Clear Water Bay Road. The beach is about 500 m north-east. Check the map.')}}
+  else if(WD.level==='db'){toast('Welcome to Discovery Bay, '+S.name+'! No cars here: people zip around in golf carts.');breedHello();toast('Find a parked golf cart and hop on, or catch the bus back to Ha Yeung.')}
+  else{toast('Welcome home, '+S.name+'! Your food bowl is by the red front door.');breedHello();toast('Uphill west is the bus stop on Clear Water Bay Road. The beach is about 500 m north-east. Check the map.')}}
 function destroy(){dead=true;$('#busBox').hidden=true;chBox.hidden=true;bBox.hidden=true;misHud.hidden=true;try{if(GEN.unsub)GEN.unsub()}catch(e){}cBox.hidden=true;try{if(MP.unsub)MP.unsub()}catch(e){}cancelAnimationFrame(rafId);AC.abort();clearTimeout(arcTimer);
   scene.traverse(o=>{if(o.geometry)o.geometry.dispose();const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms){for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}m.dispose()}});
   renderer.renderLists.dispose();renderer.dispose();try{renderer.forceContextLoss()}catch(e){}renderer.domElement.remove();
@@ -1924,18 +1934,18 @@ function destroy(){dead=true;$('#busBox').hidden=true;chBox.hidden=true;bBox.hid
   $('#aSteal').hidden=true;$('#aCtx').hidden=true;knob.style.transform='';$('#arcade').className='';sfx.set(0,0,48)}
 function boot(data,arrive){data=data||{};if(data.name)S.name=data.name;
   for(const k of ['hour','day','hunger','energy','happy','points','todos','fetchN','digN','found','stash','stashN','stashDay','patsDay','swum','carryHint','sniffHinted','cartHint','villageHint','breed','coins'])if(data[k]!==undefined&&data[k]!==null)S[k]=data[k];
-  if(!Array.isArray(S.stash))S.stash=[];S.stash.forEach((type,i)=>{if(ITYPES[type])stashPlace(addItem(type,BED.x,BED.z),i+1)});
+  if(!BREED_IDS.includes(S.breed))S.breed='golden';if(!Array.isArray(S.stash))S.stash=[];S.stash.forEach((type,i)=>{if(ITYPES[type])stashPlace(addItem(type,BED.x,BED.z),i+1)});
   runLock=!!data.runLock;$('#aRun').classList.toggle('on',runLock);
   while(typeof data.quality==='number'&&quality>Math.max(0,data.quality))lowerQuality(true);
   if(arrive){// step out a few metres past the shelter and look back at the bus
     dog.x=PL.stop[0]+STOP.fx*6;dog.z=PL.stop[1]+STOP.fz*6;if(bldAt(dog.x,dog.z)||gridH(dog.x,dog.z)<0.3){dog.x=PL.stop[0];dog.z=PL.stop[1]}dog.heading=Math.atan2(-STOP.fx,-STOP.fz);dog.y=groundAt(dog.x,dog.z);
     bus.state='dwell';bus.dwell=6;bus.stopped=true;bus.v=0;bus.s=PL.stop_s;bus.g.visible=true;placeVehicle(bus)}
   else if(typeof data.x==='number'){dog.x=data.x;dog.z=data.z;dog.heading=data.heading||0;dog.y=groundAt(dog.x,dog.z)}
-  cam.yaw=dog.heading;$('#nameLbl').textContent=S.name;$('#dogName').value=S.name;$('#plZh').textContent=WD.nameZh;$('#plName').textContent=WD.name;$('#map').setAttribute('aria-label',WD.name+' map');
+  cam.yaw=dog.heading;$('#nameLbl').textContent=S.name;$('#dogName').value=S.name;{const r=document.querySelector('input[name=breed][value='+S.breed+']');if(r)r.checked=true}$('#plZh').textContent=WD.nameZh;$('#plName').textContent=WD.name;$('#map').setAttribute('aria-label',WD.name+' map');
   if(!arrive&&(innerWidth<700||innerHeight<820))$('#todoBox').open=false;
   renderTodos();updateHud();drawMap();camera.position.set(dog.x-Math.sin(dog.heading)*6,dog.y+3,dog.z-Math.cos(dog.heading)*6);
   const sb=$('#startBtn');
-  if(!arrive){$('#startBtn').addEventListener('click',()=>{const br=(document.querySelector('input[name=breed]:checked')||{}).value==='bichon'?'bichon':'golden';if(br!==D.breed){const r=D.root;scene.remove(r);D=makeDog(br);D.root.position.copy(r.position);D.root.rotation.copy(r.rotation);scene.add(D.root)}S.breed=br;const n=$('#dogName').value.trim();S.name=n||'Mango';$('#nameLbl').textContent=S.name;start()});
+  if(!arrive){$('#startBtn').addEventListener('click',()=>{const v=(document.querySelector('input[name=breed]:checked')||{}).value,br=BREED_IDS.includes(v)?v:'golden';if(br!==D.breed){const r=D.root;scene.remove(r);r.traverse(m=>{if(m.isMesh&&m.material&&!m.material.userData.shared)m.material.dispose()});D=makeDog(br);D.root.position.copy(r.position);D.root.rotation.copy(r.rotation);scene.add(D.root)}S.breed=br;const n=$('#dogName').value.trim();S.name=n||'Mango';$('#nameLbl').textContent=S.name;start()});
     $('#dogName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#startBtn').click()});sb.disabled=true;sb.textContent='Loading the village…'}
   setTimeout(()=>{if(dead)return;try{const hidden=[];scene.traverse(o=>{if(!o.visible){hidden.push(o);o.visible=true}});renderer.compile(scene,camera);renderer.shadowMap.needsUpdate=true;renderer.render(scene,camera);hidden.forEach(o=>o.visible=false)}catch(e){}
     if(arrive){S.started=true;$('#start').hidden=true;renderTodos();setTimeout(()=>fade(false),250);
